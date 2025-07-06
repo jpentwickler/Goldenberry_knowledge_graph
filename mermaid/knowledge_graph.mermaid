@@ -1,71 +1,60 @@
 graph TD
-%% Nodes
-BusinessModel["BusinessModel<br/>id: STRING | KEY<br/>name: STRING<br/>description: STRING<br/>createdDate: DATE<br/>lastModified: DATE"]
-ValueProposition["ValueProposition<br/>id: STRING | KEY<br/>title: STRING<br/>description: STRING<br/>painReliever: STRING<br/>gainCreator: STRING"]
-CustomerSegment["CustomerSegment<br/>id: STRING | KEY<br/>name: STRING<br/>description: STRING<br/>demographics: STRING<br/>psychographics: STRING<br/>size: INTEGER"]
-JobExecutor["JobExecutor<br/>id: STRING | KEY<br/>name: STRING<br/>description: STRING<br/>context: STRING<br/>constraints: STRING<br/>capabilities: STRING<br/>motivations: STRING"]
-JobToBeDone["JobToBeDone<br/>id: STRING | KEY<br/>jobStatement: STRING<br/>functionalAspect: STRING<br/>emotionalAspect: STRING<br/>socialAspect: STRING<br/>jobType: STRING<br/>frequency: STRING<br/>importance: FLOAT<br/>satisfaction: FLOAT<br/>opportunity: FLOAT"]
-Channel["Channel<br/>id: STRING | KEY<br/>name: STRING<br/>channelType: STRING<br/>medium: STRING<br/>ownership: STRING<br/>cost: FLOAT<br/>efficiency: FLOAT<br/>reach: INTEGER"]
-CustomerRelationship["CustomerRelationship<br/>id: STRING | KEY<br/>type: STRING<br/>purpose: STRING<br/>description: STRING<br/>cost: FLOAT"]
-RevenueStream["RevenueStream<br/>id: STRING | KEY<br/>name: STRING<br/>type: STRING<br/>pricingMechanism: STRING<br/>amount: FLOAT<br/>frequency: STRING"]
-KeyResource["KeyResource<br/>id: STRING | KEY<br/>name: STRING<br/>type: STRING<br/>description: STRING<br/>ownership: STRING<br/>cost: FLOAT"]
-KeyActivity["KeyActivity<br/>id: STRING | KEY<br/>name: STRING<br/>type: STRING<br/>description: STRING<br/>priority: STRING<br/>cost: FLOAT"]
-KeyPartnership["KeyPartnership<br/>id: STRING | KEY<br/>partnerName: STRING<br/>type: STRING<br/>motivation: STRING<br/>description: STRING<br/>value: FLOAT"]
-CostStructure["CostStructure<br/>id: STRING | KEY<br/>name: STRING<br/>type: STRING<br/>category: STRING<br/>amount: FLOAT<br/>frequency: STRING"]
+%% Research-Based Semantic Knowledge Graph
+%% Nodes contain authoritative semantic descriptions from business literature
 
-%% Relationships
-BusinessModel -->|HAS_VALUE_PROPOSITION| ValueProposition
-ValueProposition -->|TARGETS| CustomerSegment
-BusinessModel -->|HAS_CUSTOMER_SEGMENT| CustomerSegment
-CustomerSegment -->|DEFINED_BY_JOB_EXECUTOR<br/>segmentFit: STRING| JobExecutor
-CustomerSegment -->|DEFINED_BY_JOB<br/>jobPriority: STRING| JobToBeDone
-JobExecutor -->|EXECUTES_JOB<br/>executionContext: STRING<br/>executionFrequency: STRING| JobToBeDone
-ValueProposition -->|ADDRESSES_JOB<br/>jobSolutionFit: STRING| JobToBeDone
-CustomerSegment -->|REACHES_THROUGH| Channel
-CustomerSegment -->|HAS_RELATIONSHIP_WITH| CustomerRelationship
-CustomerSegment -->|GENERATES<br/>contribution: FLOAT| RevenueStream
-ValueProposition -->|REQUIRES_RESOURCE<br/>dependency: STRING| KeyResource
-ValueProposition -->|REQUIRES_ACTIVITY<br/>criticality: STRING| KeyActivity
-KeyPartnership -->|ENABLES<br/>accessType: STRING| KeyResource
-KeyPartnership -->|SUPPORTS<br/>supportLevel: STRING| KeyActivity
-KeyResource -->|INCURS_COST<br/>costDriver: STRING| CostStructure
-KeyActivity -->|INCURS_COST<br/>costDriver: STRING| CostStructure
-Channel -->|INCURS_COST<br/>costDriver: STRING| CostStructure
-KeyActivity -->|USES_RESOURCE<br/>usage: STRING| KeyResource
+BusinessModel["🏢 BusinessModel<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: Strategic management template for developing<br/>and documenting business models (Osterwalder & Pigneur)<br/>🎯 PURPOSE: Move beyond product-centric to business model thinking<br/>📖 FOUNDATION: 9 building blocks framework, co-created with<br/>470 practitioners from 45 countries<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • semanticDescription: STRING<br/>theoreticalFoundation: STRING • purpose: STRING"]
 
-%% Styling 
-classDef node_0_color fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000,font-size:12px
-class BusinessModel node_0_color
+ValueProposition["💡 ValueProposition<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: Collection of products and services that<br/>distinguish company from competitors (Osterwalder)<br/>🎯 VALUE ELEMENTS: Newness, performance, customization,<br/>job completion, design, brand, price, risk reduction<br/>📖 FOUNDATION: Central element connecting customer-facing<br/>and infrastructure components<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • semanticDescription: STRING<br/>theoreticalFoundation: STRING • valueElements: STRING"]
 
-classDef node_1_color fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000,font-size:12px
-class ValueProposition node_1_color
+CustomerSegment["👥 CustomerSegment<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: Groups of people/organizations enterprise<br/>aims to reach and serve (Business Model Canvas)<br/>🎯 SEGMENTATION: Based on different needs, attributes,<br/>and jobs-to-be-done requirements<br/>📖 FOUNDATION: Mass market, niche, segmented, diversified,<br/>multi-sided platform approaches<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • semanticDescription: STRING<br/>theoreticalFoundation: STRING • segmentationApproach: STRING"]
 
-classDef node_2_color fill:#e8f5e8,stroke:#388e3c,stroke-width:3px,color:#000,font-size:12px
-class CustomerSegment node_2_color
+JobExecutor["🎭 JobExecutor<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: Individual/role executing specific job-to-be-done<br/>in ODI methodology (Ulwick)<br/>🎯 ODI RELEVANCE: Context, constraints, capabilities define<br/>solution requirements and success metrics<br/>📖 FOUNDATION: Understanding WHO performs job is as<br/>important as understanding the job itself<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • executorType: STRING<br/>semanticDescription: STRING • odiRelevance: STRING"]
 
-classDef node_3_color fill:#fff3e0,stroke:#f57c00,stroke-width:3px,color:#000,font-size:12px
-class JobExecutor node_3_color
+JobToBeDone["📋 JobToBeDone<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: Progress customers try to make in given<br/>situation (Christensen). Stable over time (Ulwick)<br/>🎯 ODI FRAMEWORK: Core functional, emotional, social,<br/>related, consumption chain jobs + desired outcomes<br/>📖 FOUNDATION: 'People don't buy products; they pull them<br/>into their life to make progress' - Christensen<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • jobStatement: STRING<br/>semanticDescription: STRING • stabilityCharacteristic: STRING"]
 
-classDef node_4_color fill:#fce4ec,stroke:#c2185b,stroke-width:3px,color:#000,font-size:12px
-class JobToBeDone node_4_color
+Channel["📡 Channel<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: Communication and distribution pathways<br/>to reach customer segments (Business Model Canvas)<br/>🎯 FUNCTIONS: Awareness, evaluation, purchase, delivery,<br/>after-sales support across customer journey<br/>📖 FOUNDATION: Direct/indirect, owned/partner channels<br/>with different reach, cost, and integration levels<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • channelType: STRING<br/>semanticDescription: STRING • channelFunctions: STRING"]
 
-classDef node_5_color fill:#e0f2f1,stroke:#00695c,stroke-width:3px,color:#000,font-size:12px
-class Channel node_5_color
+CustomerRelationship["🔗 CustomerRelationship<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: Types of relationships established with<br/>specific customer segments (Osterwalder)<br/>🎯 RELATIONSHIP TYPES: Personal assistance, dedicated<br/>service, self-service, automated, communities<br/>📖 FOUNDATION: Driven by customer acquisition, retention,<br/>and boosting sales motivations<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • type: STRING<br/>semanticDescription: STRING • relationshipTypes: STRING"]
 
-classDef node_6_color fill:#f1f8e9,stroke:#689f38,stroke-width:3px,color:#000,font-size:12px
-class CustomerRelationship node_6_color
+RevenueStream["💰 RevenueStream<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: Cash company generates from each customer<br/>segment through value delivery (Business Model Canvas)<br/>🎯 REVENUE TYPES: Asset sale, usage fee, subscription,<br/>lending/leasing, licensing, brokerage, advertising<br/>📖 FOUNDATION: Fixed/dynamic pricing with various<br/>mechanisms: list price, negotiation, auction, market-dependent<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • pricingMechanism: STRING<br/>semanticDescription: STRING • revenueTypes: STRING"]
 
-classDef node_7_color fill:#fff8e1,stroke:#ffa000,stroke-width:3px,color:#000,font-size:12px
-class RevenueStream node_7_color
+KeyResource["🛠️ KeyResource<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: Most important assets required to make<br/>business model work (Business Model Canvas)<br/>🎯 RESOURCE CATEGORIES: Physical (manufacturing, buildings),<br/>intellectual (brands, IP), human (talent), financial (cash, credit)<br/>📖 FOUNDATION: Enable value proposition creation, market reach,<br/>customer relationships, and revenue generation<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • type: STRING<br/>semanticDescription: STRING • resourceCategories: STRING"]
 
-classDef node_8_color fill:#e8eaf6,stroke:#3f51b5,stroke-width:3px,color:#000,font-size:12px
-class KeyResource node_8_color
+KeyActivity["🔄 KeyActivity<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: Most important things company must do<br/>to make business model work (Osterwalder)<br/>🎯 ACTIVITY CATEGORIES: Production (manufacturing),<br/>problem-solving (consulting), platform/network management<br/>📖 FOUNDATION: Critical processes for value creation,<br/>delivery, and business model operation<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • type: STRING<br/>semanticDescription: STRING • activityCategories: STRING"]
 
-classDef node_9_color fill:#efebe9,stroke:#5d4037,stroke-width:3px,color:#000,font-size:12px
-class KeyActivity node_9_color
+KeyPartnership["🤝 KeyPartnership<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: Network of suppliers and partners that<br/>make business model work (Business Model Canvas)<br/>🎯 PARTNERSHIP TYPES: Strategic alliances, joint ventures,<br/>buyer-supplier relationships for optimization/economy of scale<br/>📖 FOUNDATION: Motivated by optimization, risk reduction,<br/>resource acquisition, and particular activities<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • type: STRING<br/>semanticDescription: STRING • partnershipTypes: STRING"]
 
-classDef node_10_color fill:#fafafa,stroke:#424242,stroke-width:3px,color:#000,font-size:12px
-class KeyPartnership node_10_color
+CostStructure["📊 CostStructure<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>📚 SEMANTIC: All costs incurred to operate business<br/>model (Business Model Canvas)<br/>🎯 COST TYPES: Fixed costs (salaries, rents), variable costs<br/>(dependent on volume), economies of scale/scope<br/>📖 FOUNDATION: Cost-driven vs value-driven structures,<br/>with focus on minimizing costs or maximizing value<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>id: STRING | KEY • type: STRING<br/>semanticDescription: STRING • costTypes: STRING"]
 
-classDef node_11_color fill:#e1f5fe,stroke:#0277bd,stroke-width:3px,color:#000,font-size:12px
-class CostStructure node_11_color
+%% Relationships with semantic context
+BusinessModel -->|HAS_VALUE_PROPOSITION<br/>🎯 Central organizing element| ValueProposition
+BusinessModel -->|HAS_CUSTOMER_SEGMENT<br/>🎯 Target market definition| CustomerSegment
+ValueProposition -->|TARGETS<br/>🎯 Serves specific needs| CustomerSegment
+CustomerSegment -->|DEFINED_BY_JOB_EXECUTOR<br/>🎯 ODI: Who performs jobs| JobExecutor
+CustomerSegment -->|DEFINED_BY_JOB<br/>🎯 JTBD: Progress to make| JobToBeDone
+JobExecutor -->|EXECUTES_JOB<br/>🎯 ODI: Performance context| JobToBeDone
+ValueProposition -->|ADDRESSES_JOB<br/>🎯 Solution for job completion| JobToBeDone
+CustomerSegment -->|REACHES_THROUGH<br/>🎯 Communication pathways| Channel
+CustomerSegment -->|HAS_RELATIONSHIP_WITH<br/>🎯 Interaction experience| CustomerRelationship
+CustomerSegment -->|GENERATES<br/>🎯 Financial returns| RevenueStream
+ValueProposition -->|REQUIRES_RESOURCE<br/>🎯 Essential assets| KeyResource
+ValueProposition -->|REQUIRES_ACTIVITY<br/>🎯 Critical processes| KeyActivity
+KeyActivity -->|USES_RESOURCE<br/>🎯 Resource utilization| KeyResource
+KeyPartnership -->|ENABLES<br/>🎯 Resource access| KeyResource
+KeyPartnership -->|SUPPORTS<br/>🎯 Activity facilitation| KeyActivity
+KeyResource -->|INCURS_COST<br/>🎯 Resource expenses<br/>costDriver: STRING| CostStructure
+KeyActivity -->|INCURS_COST<br/>🎯 Process expenses<br/>costDriver: STRING| CostStructure
+Channel -->|INCURS_COST<br/>🎯 Channel expenses<br/>costDriver: STRING| CostStructure
+
+%% Advanced styling for semantic clarity
+classDef foundation fill:#e3f2fd,stroke:#1976d2,stroke-width:4px,color:#000,font-weight:bold,font-size:10px
+classDef jtbd fill:#fff3e0,stroke:#f57c00,stroke-width:4px,color:#000,font-weight:bold,font-size:10px
+classDef customer fill:#e8f5e8,stroke:#388e3c,stroke-width:4px,color:#000,font-weight:bold,font-size:10px
+classDef operations fill:#f3e5f5,stroke:#7b1fa2,stroke-width:4px,color:#000,font-weight:bold,font-size:10px
+classDef financial fill:#fce4ec,stroke:#c2185b,stroke-width:4px,color:#000,font-weight:bold,font-size:10px
+
+class BusinessModel,ValueProposition foundation
+class JobExecutor,JobToBeDone jtbd
+class CustomerSegment,Channel,CustomerRelationship customer
+class KeyResource,KeyActivity,KeyPartnership operations
+class RevenueStream,CostStructure financial
