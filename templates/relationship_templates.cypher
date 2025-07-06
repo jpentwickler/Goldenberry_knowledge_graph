@@ -1,16 +1,27 @@
 // =====================================================
 // Business Model Canvas + JTBD Relationship Creation Templates
+// WITH SEMANTIC ENHANCEMENT FROM BUSINESS LITERATURE
 // Copy and customize these templates for connecting your business model nodes
 // =====================================================
 
-// PREREQUISITE: Create all nodes first using node-templates.cypher
+// PREREQUISITE: Create all nodes first using node-templates.cypher with semantic enhancement
 // Then use these templates to connect them into a complete business model
+
+// =====================================================
+// SEMANTIC ENHANCEMENT IN RELATIONSHIPS
+// =====================================================
+// Relationships now include semantic context from:
+// - Business Model Canvas theory (Osterwalder & Pigneur)
+// - Jobs-to-be-Done methodology (Christensen & Ulwick)
+// - Strategic management frameworks
+// - Customer-centric business model design
 
 // =====================================================
 // CORE BUSINESS MODEL RELATIONSHIPS
 // =====================================================
 
 // 1. Business Model to Value Propositions (HAS_VALUE_PROPOSITION)
+// SEMANTIC CONTEXT: Central organizing relationship in Business Model Canvas
 // Connect your business model to all its value propositions
 MATCH (bm:BusinessModel {id: "bm_001"}), (vp:ValueProposition {id: "vp_001"})
 CREATE (bm)-[:HAS_VALUE_PROPOSITION]->(vp);
@@ -22,6 +33,7 @@ CREATE (bm)-[:HAS_VALUE_PROPOSITION]->(vp);
 // =====================================================
 
 // 2. Business Model to Customer Segments (HAS_CUSTOMER_SEGMENT)
+// SEMANTIC CONTEXT: Defines target market scope in business model framework
 // Connect your business model to all its customer segments
 MATCH (bm:BusinessModel {id: "bm_001"}), (cs:CustomerSegment {id: "cs_001"})
 CREATE (bm)-[:HAS_CUSTOMER_SEGMENT]->(cs);
@@ -33,6 +45,7 @@ CREATE (bm)-[:HAS_CUSTOMER_SEGMENT]->(cs);
 // =====================================================
 
 // 3. Value Propositions to Customer Segments (TARGETS)
+// SEMANTIC CONTEXT: Value-customer fit alignment from Business Model Canvas
 // Show which value propositions target which customer segments
 MATCH (vp:ValueProposition {id: "vp_001"}), (cs:CustomerSegment {id: "cs_001"})
 CREATE (vp)-[:TARGETS]->(cs);
@@ -51,56 +64,44 @@ CREATE (vp)-[:TARGETS]->(cs);
 // 4. Customer Segments to Job Executors (DEFINED_BY_JOB_EXECUTOR)
 // Each customer segment is defined by who executes the jobs
 MATCH (cs:CustomerSegment {id: "cs_001"}), (je:JobExecutor {id: "je_001"})
-CREATE (cs)-[:DEFINED_BY_JOB_EXECUTOR {
-    segmentFit: "high"                               // Change: high, medium, low
-}]->(je);
+CREATE (cs)-[:DEFINED_BY_JOB_EXECUTOR]->(je);
 
 // Template for additional job executors:
 // MATCH (cs:CustomerSegment {id: "cs_002"}), (je:JobExecutor {id: "je_002"})
-// CREATE (cs)-[:DEFINED_BY_JOB_EXECUTOR {segmentFit: "high"}]->(je);
+// CREATE (cs)-[:DEFINED_BY_JOB_EXECUTOR]->(je);
 
 // =====================================================
 
 // 5. Customer Segments to Jobs to be Done (DEFINED_BY_JOB)
 // Each customer segment is defined by the jobs they need to accomplish
 MATCH (cs:CustomerSegment {id: "cs_001"}), (job:JobToBeDone {id: "job_001"})
-CREATE (cs)-[:DEFINED_BY_JOB {
-    jobPriority: "primary"                           // Change: primary, secondary, tertiary
-}]->(job);
+CREATE (cs)-[:DEFINED_BY_JOB]->(job);
 
 // Template for additional jobs:
 // MATCH (cs:CustomerSegment {id: "cs_002"}), (job:JobToBeDone {id: "job_002"})
-// CREATE (cs)-[:DEFINED_BY_JOB {jobPriority: "primary"}]->(job);
+// CREATE (cs)-[:DEFINED_BY_JOB]->(job);
 
 // =====================================================
 
 // 6. Job Executors to Jobs to be Done (EXECUTES_JOB)
-// Show who executes which jobs and in what context
+// Show who executes which jobs
 MATCH (je:JobExecutor {id: "je_001"}), (job:JobToBeDone {id: "job_001"})
-CREATE (je)-[:EXECUTES_JOB {
-    executionContext: "[DESCRIBE CONTEXT]",          // Change: Where/how they perform the job
-    executionFrequency: "daily"                      // Change: daily, weekly, monthly, etc.
-}]->(job);
+CREATE (je)-[:EXECUTES_JOB]->(job);
 
 // Template for additional job execution relationships:
 // MATCH (je:JobExecutor {id: "je_002"}), (job:JobToBeDone {id: "job_002"})
-// CREATE (je)-[:EXECUTES_JOB {
-//     executionContext: "[CONTEXT]", 
-//     executionFrequency: "weekly"
-// }]->(job);
+// CREATE (je)-[:EXECUTES_JOB]->(job);
 
 // =====================================================
 
 // 7. Value Propositions to Jobs to be Done (ADDRESSES_JOB)
 // Show how your value propositions address customer jobs
 MATCH (vp:ValueProposition {id: "vp_001"}), (job:JobToBeDone {id: "job_001"})
-CREATE (vp)-[:ADDRESSES_JOB {
-    jobSolutionFit: "strong"                         // Change: strong, medium, weak
-}]->(job);
+CREATE (vp)-[:ADDRESSES_JOB]->(job);
 
 // Template for additional job addressing relationships:
 // MATCH (vp:ValueProposition {id: "vp_002"}), (job:JobToBeDone {id: "job_002"})
-// CREATE (vp)-[:ADDRESSES_JOB {jobSolutionFit: "strong"}]->(job);
+// CREATE (vp)-[:ADDRESSES_JOB]->(job);
 
 // =====================================================
 // CUSTOMER INTERACTION RELATIONSHIPS
@@ -134,16 +135,14 @@ CREATE (cs)-[:HAS_RELATIONSHIP_WITH]->(cr);
 // 10. Customer Segments to Revenue Streams (GENERATES)
 // Show how each customer segment contributes to revenue
 MATCH (cs:CustomerSegment {id: "cs_001"}), (rs:RevenueStream {id: "rs_001"})
-CREATE (cs)-[:GENERATES {
-    contribution: 60.0                               // Change: Percentage contribution to this revenue stream
-}]->(rs);
+CREATE (cs)-[:GENERATES]->(rs);
 
 // Template for additional revenue relationships:
 // MATCH (cs:CustomerSegment {id: "cs_002"}), (rs:RevenueStream {id: "rs_002"})
-// CREATE (cs)-[:GENERATES {contribution: 40.0}]->(rs);
+// CREATE (cs)-[:GENERATES]->(rs);
 //
 // MATCH (cs:CustomerSegment {id: "cs_001"}), (rs:RevenueStream {id: "rs_002"})
-// CREATE (cs)-[:GENERATES {contribution: 25.0}]->(rs);
+// CREATE (cs)-[:GENERATES]->(rs);
 
 // =====================================================
 // RESOURCE AND ACTIVITY DEPENDENCIES
@@ -152,42 +151,36 @@ CREATE (cs)-[:GENERATES {
 // 11. Value Propositions to Key Resources (REQUIRES_RESOURCE)
 // Show which resources are needed to deliver each value proposition
 MATCH (vp:ValueProposition {id: "vp_001"}), (kr:KeyResource {id: "kr_001"})
-CREATE (vp)-[:REQUIRES_RESOURCE {
-    dependency: "critical"                           // Change: critical, high, medium, low
-}]->(kr);
+CREATE (vp)-[:REQUIRES_RESOURCE]->(kr);
 
 // Template for additional resource dependencies:
 // MATCH (vp:ValueProposition {id: "vp_001"}), (kr:KeyResource {id: "kr_002"})
-// CREATE (vp)-[:REQUIRES_RESOURCE {dependency: "high"}]->(kr);
+// CREATE (vp)-[:REQUIRES_RESOURCE]->(kr);
 //
 // MATCH (vp:ValueProposition {id: "vp_002"}), (kr:KeyResource {id: "kr_003"})
-// CREATE (vp)-[:REQUIRES_RESOURCE {dependency: "medium"}]->(kr);
+// CREATE (vp)-[:REQUIRES_RESOURCE]->(kr);
 
 // =====================================================
 
 // 12. Value Propositions to Key Activities (REQUIRES_ACTIVITY)
 // Show which activities are needed to deliver each value proposition
 MATCH (vp:ValueProposition {id: "vp_001"}), (ka:KeyActivity {id: "ka_001"})
-CREATE (vp)-[:REQUIRES_ACTIVITY {
-    criticality: "critical"                          // Change: critical, high, medium, low
-}]->(ka);
+CREATE (vp)-[:REQUIRES_ACTIVITY]->(ka);
 
 // Template for additional activity dependencies:
 // MATCH (vp:ValueProposition {id: "vp_002"}), (ka:KeyActivity {id: "ka_002"})
-// CREATE (vp)-[:REQUIRES_ACTIVITY {criticality: "high"}]->(ka);
+// CREATE (vp)-[:REQUIRES_ACTIVITY]->(ka);
 
 // =====================================================
 
 // 13. Key Activities to Key Resources (USES_RESOURCE)
 // Show which resources are used by which activities
 MATCH (ka:KeyActivity {id: "ka_001"}), (kr:KeyResource {id: "kr_001"})
-CREATE (ka)-[:USES_RESOURCE {
-    usage: "[DESCRIBE HOW RESOURCE IS USED]"         // Change: Describe how the resource is used
-}]->(kr);
+CREATE (ka)-[:USES_RESOURCE]->(kr);
 
 // Template for additional resource usage:
 // MATCH (ka:KeyActivity {id: "ka_002"}), (kr:KeyResource {id: "kr_002"})
-// CREATE (ka)-[:USES_RESOURCE {usage: "[USAGE DESCRIPTION]"}]->(kr);
+// CREATE (ka)-[:USES_RESOURCE]->(kr);
 
 // =====================================================
 // PARTNERSHIP RELATIONSHIPS
@@ -196,26 +189,22 @@ CREATE (ka)-[:USES_RESOURCE {
 // 14. Key Partnerships to Key Resources (ENABLES)
 // Show how partnerships provide access to key resources
 MATCH (kp:KeyPartnership {id: "kp_001"}), (kr:KeyResource {id: "kr_001"})
-CREATE (kp)-[:ENABLES {
-    accessType: "infrastructure"                     // Change: infrastructure, data, expertise, funding, etc.
-}]->(kr);
+CREATE (kp)-[:ENABLES]->(kr);
 
 // Template for additional partnership-resource relationships:
 // MATCH (kp:KeyPartnership {id: "kp_002"}), (kr:KeyResource {id: "kr_002"})
-// CREATE (kp)-[:ENABLES {accessType: "expertise"}]->(kr);
+// CREATE (kp)-[:ENABLES]->(kr);
 
 // =====================================================
 
 // 15. Key Partnerships to Key Activities (SUPPORTS)
 // Show how partnerships support key activities
 MATCH (kp:KeyPartnership {id: "kp_001"}), (ka:KeyActivity {id: "ka_001"})
-CREATE (kp)-[:SUPPORTS {
-    supportLevel: "high"                             // Change: high, medium, low
-}]->(ka);
+CREATE (kp)-[:SUPPORTS]->(ka);
 
 // Template for additional partnership-activity relationships:
 // MATCH (kp:KeyPartnership {id: "kp_002"}), (ka:KeyActivity {id: "ka_002"})
-// CREATE (kp)-[:SUPPORTS {supportLevel: "medium"}]->(ka);
+// CREATE (kp)-[:SUPPORTS]->(ka);
 
 // =====================================================
 // COST STRUCTURE RELATIONSHIPS
@@ -348,11 +337,10 @@ CREATE (ch)-[:INCURS_COST {
 // 1. Create all nodes first using node-templates.cypher
 // 2. Copy relevant relationship templates from above
 // 3. Update node IDs to match your actual node IDs
-// 4. Customize property values for your business context
-// 5. Execute relationship creation queries in Neo4j
-// 6. Run validation queries to ensure completeness
-// 7. Verify all 18+ relationship types are present
+// 4. Execute relationship creation queries in Neo4j
+// 5. Run validation queries to ensure completeness
+// 6. Verify all 18+ relationship types are present
 
 // NEXT STEPS:
-// After creating all relationships, use validation-queries.cypher 
+// After creating all relationships, run validation queries 
 // to verify your business model is complete and properly connected.
