@@ -98,6 +98,25 @@ class Neo4jConnection:
             logger.error(f"Failed to get product count: {str(e)}")
             raise
 
+    def get_total_revenue(self) -> float:
+        """
+        Calculate total revenue across all revenue streams
+
+        Returns:
+            Total revenue in USD
+        """
+        try:
+            query = """
+            MATCH (rs:RevenueStream)-[:HAS_VOLUME_DATA]->(vd:VolumeData)-[:OCCURS_IN_PERIOD]->(tp:TimePeriod),
+                  (rs)-[:HAS_PRICE_DATA]->(pd:PriceData)-[:PRICED_IN_PERIOD]->(tp)
+            RETURN SUM(vd.volume * pd.price) as totalRevenue
+            """
+            result = self.execute_query(query)
+            return float(result[0]["totalRevenue"]) if result and result[0]["totalRevenue"] else 0.0
+        except Exception as e:
+            logger.error(f"Failed to get total revenue: {str(e)}")
+            raise
+
     def get_connection_status(self) -> Dict[str, Any]:
         """
         Get connection status information

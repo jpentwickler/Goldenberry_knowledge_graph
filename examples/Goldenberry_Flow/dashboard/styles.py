@@ -116,6 +116,57 @@ CUSTOM_CSS = """
     .text-secondary {
         color: #6C757D;
     }
+
+    /* Compact Status Indicator */
+    .compact-status-indicator {
+        transition: all 0.2s ease;
+        cursor: help;
+    }
+
+    .compact-status-indicator:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 119, 182, 0.2);
+    }
+
+    /* Page Header with Status */
+    .page-header-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #0077B6;
+        padding-bottom: 10px;
+        margin-bottom: 30px;
+    }
+
+    .page-header-title {
+        color: #212529;
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    .page-header-status {
+        flex-shrink: 0;
+        margin-left: 20px;
+    }
+
+    /* Responsive header for mobile */
+    @media (max-width: 768px) {
+        .page-header-container {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .page-header-status {
+            margin-left: 0;
+            align-self: flex-end;
+        }
+
+        .compact-status-indicator span:last-child {
+            display: none;
+        }
+    }
 </style>
 """
 

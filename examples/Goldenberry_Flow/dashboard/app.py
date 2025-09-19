@@ -27,11 +27,33 @@ st.set_page_config(
 # Apply custom styling
 apply_custom_styling()
 
-# Hide sidebar completely
+# Hide sidebar completely and aggressively reduce top page spacing
 st.markdown("""
     <style>
         [data-testid="stSidebar"] {
             display: none;
+        }
+
+        /* Aggressively reduce top page spacing */
+        .main .block-container {
+            padding-top: 0.5rem !important;
+            margin-top: 0 !important;
+        }
+
+        .stApp {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+
+        .stApp > header {
+            height: 0 !important;
+            display: none !important;
+        }
+
+        /* Remove any default top margins/padding */
+        .element-container:first-child {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -42,9 +64,10 @@ def main():
     # Create horizontal navigation with custom styling
     st.markdown(f"""
         <div style="background-color: {COLORS['background']};
-                    padding: 20px 0;
+                    padding: 5px 0;
                     border-bottom: 3px solid {COLORS['borders']};
-                    margin-bottom: 30px;">
+                    margin-bottom: 30px;
+                    margin-top: 0;">
             <h1 style="color: {COLORS['text_primary']};
                       text-align: center;
                       margin: 0;
@@ -61,10 +84,11 @@ def main():
     # Style the tabs to match our design
     st.markdown("""
         <style>
-            /* Center the tab container */
+            /* Full width tab container with responsive padding */
             .stTabs {
-                max-width: 900px;
+                width: 100%;
                 margin: 0 auto;
+                padding: 0 5%;
             }
 
             /* Tab container */

@@ -16,6 +16,5 @@ CONNECTION_SETTINGS = {
     "max_connection_lifetime": 3600,  # 1 hour
     "max_connection_pool_size": 50,
     "connection_acquisition_timeout": 60,  # 60 seconds
-    "connection_timeout": 30,  # 30 seconds
-    "max_retry_time": 30
+    "connection_timeout": 30  # 30 seconds
 }
