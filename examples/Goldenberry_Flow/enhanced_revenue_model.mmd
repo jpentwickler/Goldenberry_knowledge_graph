@@ -1,0 +1,122 @@
+graph TD
+%% Enhanced Revenue Model - Goldenberry Flow with Excel Integration
+%% Designed for Phase 2: Data Model Design & Validation
+
+%% Existing Nodes (from current graph)
+CS["CustomerSegment<br/>Premium Fruit Importers<br/>---<br/>id: cs_fruit_importers<br/>name: Premium Fruit Importers"]
+
+%% Enhanced RevenueStream Nodes (Kg-based Pricing)
+RS1["RevenueStream<br/>Premium Physalis Sales<br/>---<br/>ENHANCED PROPERTIES:<br/>currency: USD<br/>unitType: kg<br/>pricingMechanism: market-based<br/>frequency: per kg<br/>seasonality: year-round<br/>marketVolatility: low"]
+
+RS2["RevenueStream<br/>Pitahaya Sales<br/>---<br/>ENHANCED PROPERTIES:<br/>currency: USD<br/>unitType: kg<br/>pricingMechanism: market-based<br/>frequency: per kg<br/>seasonality: peak-season<br/>marketVolatility: medium"]
+
+RS3["RevenueStream<br/>Seasonal Exotic Fruit Sales<br/>---<br/>ENHANCED PROPERTIES:<br/>currency: USD<br/>unitType: kg<br/>pricingMechanism: market-based<br/>frequency: per kg<br/>seasonality: seasonal<br/>marketVolatility: high"]
+
+%% New Supporting Nodes (Enhanced with Kg-based Pricing)
+P1["Product<br/>Premium Physalis<br/>---<br/>category: exotic-fruit<br/>quality: premium<br/>origin: Colombia<br/>baseUnitPrice: 8.50 USD/kg<br/>unitMeasure: kg<br/>avgKgPerContainer: 4117.65<br/>storageRequirements: refrigerated"]
+
+P2["Product<br/>Pitahaya (Dragon Fruit)<br/>---<br/>category: exotic-fruit<br/>quality: premium<br/>origin: Colombia<br/>baseUnitPrice: 6.80 USD/kg<br/>unitMeasure: kg<br/>avgKgPerContainer: 4117.65<br/>storageRequirements: refrigerated"]
+
+P3["Product<br/>Seasonal Exotic Mix<br/>---<br/>category: exotic-fruit<br/>quality: premium<br/>origin: Colombia<br/>baseUnitPrice: 5.34 USD/kg<br/>unitMeasure: kg<br/>avgKgPerContainer: 4117.65<br/>storageRequirements: refrigerated"]
+
+%% TimePeriod Nodes (Monthly Coverage - Examples Shown)
+TP1["TimePeriod<br/>January 2024<br/>---<br/>year: 2024<br/>month: 1<br/>monthName: January<br/>periodType: monthly<br/>season: winter"]
+
+TP2["TimePeriod<br/>February 2024<br/>---<br/>year: 2024<br/>month: 2<br/>monthName: February<br/>periodType: monthly<br/>season: winter"]
+
+TP7["TimePeriod<br/>July 2024<br/>---<br/>year: 2024<br/>month: 7<br/>monthName: July<br/>periodType: monthly<br/>season: summer"]
+
+TP12["TimePeriod<br/>December 2024<br/>---<br/>year: 2024<br/>month: 12<br/>monthName: December<br/>periodType: monthly<br/>season: fall"]
+
+%% VolumeData Nodes (Monthly Kg-based Integration - Examples)
+VD1["VolumeData<br/>Physalis Jan 2024<br/>---<br/>volume: 17294.0 kg<br/>unit: kg<br/>capacity: 20588.25 kg<br/>utilizationRate: 84.0%<br/>containerEquivalent: 4.2<br/>growthRate: 12.5%"]
+
+VD2["VolumeData<br/>Pitahaya Jan 2024<br/>---<br/>volume: 11529.4 kg<br/>unit: kg<br/>capacity: 14411.775 kg<br/>utilizationRate: 80.0%<br/>containerEquivalent: 2.8<br/>growthRate: 22.0%"]
+
+VD3["VolumeData<br/>Seasonal Exotic Jul 2024<br/>---<br/>volume: 9882.36 kg<br/>unit: kg<br/>capacity: 10294.125 kg<br/>utilizationRate: 96.0%<br/>containerEquivalent: 2.4<br/>growthRate: 28.5%"]
+
+VD4["VolumeData<br/>Seasonal Exotic Dec 2024<br/>---<br/>volume: 4529.42 kg<br/>unit: kg<br/>capacity: 10294.125 kg<br/>utilizationRate: 44.0%<br/>containerEquivalent: 1.1<br/>growthRate: -26.7%"]
+
+%% PriceData Nodes (Monthly Kg-based Pricing - Examples)
+PD1["PriceData<br/>Physalis Jan 2024<br/>---<br/>price: 8.50 USD/kg<br/>currency: USD<br/>unitMeasure: kg<br/>basePrice: 8.50<br/>marketAdjustment: 0.00<br/>marketCondition: stable<br/>volatilityIndex: 0.12"]
+
+PD2["PriceData<br/>Pitahaya Jan 2024<br/>---<br/>price: 6.92 USD/kg<br/>currency: USD<br/>unitMeasure: kg<br/>basePrice: 6.80<br/>marketAdjustment: +0.12<br/>marketCondition: bull<br/>volatilityIndex: 0.25"]
+
+PD3["PriceData<br/>Seasonal Exotic Jul 2024<br/>---<br/>price: 5.88 USD/kg<br/>currency: USD<br/>unitMeasure: kg<br/>basePrice: 5.34<br/>marketAdjustment: +0.54<br/>marketCondition: bull<br/>volatilityIndex: 0.22"]
+
+PD4["PriceData<br/>Seasonal Exotic Dec 2024<br/>---<br/>price: 5.05 USD/kg<br/>currency: USD<br/>unitMeasure: kg<br/>basePrice: 5.34<br/>marketAdjustment: -0.29<br/>marketCondition: bear<br/>volatilityIndex: 0.35"]
+
+%% Existing Relationships
+CS -->|GENERATES| RS1
+CS -->|GENERATES| RS2
+CS -->|GENERATES| RS3
+
+%% New Relationships (Excel Integration)
+RS1 -->|SELLS_PRODUCT| P1
+RS2 -->|SELLS_PRODUCT| P2
+RS3 -->|SELLS_PRODUCT| P3
+
+RS1 -->|HAS_VOLUME_DATA| VD1
+RS2 -->|HAS_VOLUME_DATA| VD2
+RS3 -->|HAS_VOLUME_DATA| VD3
+RS3 -->|HAS_VOLUME_DATA| VD4
+
+RS1 -->|HAS_PRICE_DATA| PD1
+RS2 -->|HAS_PRICE_DATA| PD2
+RS3 -->|HAS_PRICE_DATA| PD3
+RS3 -->|HAS_PRICE_DATA| PD4
+
+VD1 -->|OCCURS_IN_PERIOD| TP1
+VD2 -->|OCCURS_IN_PERIOD| TP1
+VD3 -->|OCCURS_IN_PERIOD| TP7
+VD4 -->|OCCURS_IN_PERIOD| TP12
+
+PD1 -->|PRICED_IN_PERIOD| TP1
+PD2 -->|PRICED_IN_PERIOD| TP1
+PD3 -->|PRICED_IN_PERIOD| TP7
+PD4 -->|PRICED_IN_PERIOD| TP12
+
+VD1 -->|VOLUME_FOR_PRODUCT| P1
+VD2 -->|VOLUME_FOR_PRODUCT| P2
+VD3 -->|VOLUME_FOR_PRODUCT| P3
+VD4 -->|VOLUME_FOR_PRODUCT| P3
+
+PD1 -->|PRICE_FOR_PRODUCT| P1
+PD2 -->|PRICE_FOR_PRODUCT| P2
+PD3 -->|PRICE_FOR_PRODUCT| P3
+PD4 -->|PRICE_FOR_PRODUCT| P3
+
+%% Styling
+classDef customerSegment fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000,font-size:10px
+classDef revenueStream fill:#fff3e0,stroke:#f57c00,stroke-width:3px,color:#000,font-size:10px
+classDef product fill:#e8f5e8,stroke:#388e3c,stroke-width:3px,color:#000,font-size:10px
+classDef timePeriod fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000,font-size:10px
+classDef volumeData fill:#fff8e1,stroke:#ffa000,stroke-width:3px,color:#000,font-size:10px
+classDef priceData fill:#fce4ec,stroke:#c2185b,stroke-width:3px,color:#000,font-size:10px
+
+class CS customerSegment
+class RS1,RS2,RS3 revenueStream
+class P1,P2,P3 product
+class TP1,TP2,TP7,TP12 timePeriod
+class VD1,VD2,VD3,VD4 volumeData
+class PD1,PD2,PD3,PD4 priceData
+
+%% Legend
+subgraph Legend["Enhanced Model Legend"]
+    L1["Customer Segment"]:::customerSegment
+    L2["Revenue Stream (Enhanced)"]:::revenueStream
+    L3["Product"]:::product
+    L4["Time Period"]:::timePeriod
+    L5["Volume Data (kg-based)"]:::volumeData
+    L6["Price Data (USD/kg)"]:::priceData
+end
+
+%% Excel Integration Flow (Kg-based Model)
+subgraph ExcelFlow["Monthly Kg-based Excel Data Flow"]
+    direction LR
+    E1["Excel Variables Tab<br/>→ Product Properties (baseUnitPrice per kg)"]
+    E2["Excel Volumes Tab (Monthly)<br/>→ 12 VolumeData Nodes per Product (kg)"]
+    E3["Excel Cash Flow Tab (Monthly)<br/>→ 12 PriceData Nodes per Product (USD/kg)"]
+    E4["Monthly Periods<br/>→ 12 TimePeriod Nodes"]
+    E5["Revenue Calculation<br/>→ Volume(kg) × Price(USD/kg) = Revenue"]
+end

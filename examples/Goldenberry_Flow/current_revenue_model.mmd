@@ -1,0 +1,30 @@
+graph TD
+%% Current Revenue Model - Goldenberry Flow
+%% Generated from Neo4j Knowledge Graph
+
+%% Nodes
+CustomerSegment["CustomerSegment<br/>Premium Fruit Importers<br/>---<br/>id: cs_fruit_importers<br/>name: Premium Fruit Importers"]
+
+RS1["RevenueStream<br/>Premium Physalis Container Sales<br/>---<br/>id: rs_physalis_container_sales<br/>type: one-time<br/>pricingMechanism: fixed<br/>frequency: per container"]
+
+RS2["RevenueStream<br/>Pitahaya Container Sales<br/>---<br/>id: rs_pitahaya_container_sales<br/>type: one-time<br/>pricingMechanism: fixed<br/>frequency: per container"]
+
+RS3["RevenueStream<br/>Seasonal Exotic Fruit Container Sales<br/>---<br/>id: rs_seasonal_fruit_sales<br/>type: recurring<br/>pricingMechanism: market-based<br/>frequency: seasonal cycles"]
+
+%% Relationships
+CustomerSegment -->|GENERATES| RS1
+CustomerSegment -->|GENERATES| RS2
+CustomerSegment -->|GENERATES| RS3
+
+%% Styling
+classDef customerSegment fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000,font-size:12px
+classDef revenueStream fill:#fff3e0,stroke:#f57c00,stroke-width:3px,color:#000,font-size:12px
+
+class CustomerSegment customerSegment
+class RS1,RS2,RS3 revenueStream
+
+%% Legend
+subgraph Legend["Legend"]
+    L1["Customer Segment"]:::customerSegment
+    L2["Revenue Stream"]:::revenueStream
+end
