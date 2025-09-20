@@ -10,14 +10,13 @@ from pathlib import Path
 # Add parent directory to path for styles import
 sys.path.append(str(Path(__file__).parent.parent))
 from styles import COLORS
-from database import render_compact_status_indicator
+from database import render_header_status_indicator
 
 def render():
     """Render the Product Performance page"""
 
     # Page header with compact status indicator using flexbox layout
-    from database.status_indicator import get_compact_database_status
-    status_info = get_compact_database_status()
+    status_indicator_html = render_header_status_indicator()
 
     # Full-width header with flexbox layout
     header_html = f"""
@@ -34,27 +33,7 @@ def render():
                       font-weight: 600;">
                 Product Performance
             </h2>
-            <div style="display: inline-flex;
-                       align-items: center;
-                       gap: 6px;
-                       padding: 4px 8px;
-                       border-radius: 12px;
-                       background-color: rgba(0,119,182,0.1);
-                       border: 1px solid {status_info["color"]};
-                       font-size: 13px;
-                       font-weight: 500;
-                       white-space: nowrap;
-                       margin-right: 40px;"
-                 title="{status_info["tooltip"]}">
-                <span style="color: {status_info["color"]};
-                           font-size: 14px;
-                           font-weight: bold;">
-                    {status_info["icon"]}
-                </span>
-                <span style="color: {status_info["color"]};">
-                    {status_info["text"]}
-                </span>
-            </div>
+            {status_indicator_html}
         </div>
     """
 

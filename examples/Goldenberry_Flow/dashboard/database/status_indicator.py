@@ -56,9 +56,12 @@ def get_compact_database_status():
             "tooltip": f"Initialization error: {str(e)}"
         }
 
-def render_compact_status_indicator():
+def render_compact_status_indicator(custom_styles=None):
     """
-    Render the compact database status indicator as HTML
+    Render the compact database status indicator as HTML with optional custom styling
+
+    Args:
+        custom_styles (dict): Optional custom CSS styles to override defaults
 
     Returns:
         str: HTML string for the status indicator
@@ -66,9 +69,49 @@ def render_compact_status_indicator():
     status_info = get_compact_database_status()
     rgb_color = _hex_to_rgb(status_info['color'])
 
-    html = f"""<div class="compact-status-indicator" title="{status_info['tooltip']}" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 16px; background-color: rgba({rgb_color}, 0.1); border: 1px solid {status_info['color']}; font-size: 14px; font-weight: 500; white-space: nowrap;"><span style="color: {status_info['color']}; font-size: 16px; font-weight: bold; line-height: 1;">{status_info['icon']}</span><span style="color: {status_info['color']};">{status_info['text']}</span></div>"""
+    # Default styles matching current page implementation
+    default_styles = {
+        'display': 'inline-flex',
+        'align-items': 'center',
+        'gap': '6px',
+        'padding': '4px 8px',
+        'border-radius': '12px',
+        'font-size': '13px',
+        'font-weight': '500',
+        'white-space': 'nowrap',
+        'icon_font_size': '14px',
+        'icon_font_weight': 'bold'
+    }
+
+    # Merge custom styles if provided
+    if custom_styles:
+        default_styles.update(custom_styles)
+
+    # Build style string
+    container_styles = []
+    for key, value in default_styles.items():
+        if key not in ['icon_font_size', 'icon_font_weight']:
+            container_styles.append(f"{key.replace('_', '-')}: {value}")
+
+    container_style = "; ".join(container_styles)
+
+    html = f"""<div class="compact-status-indicator" title="{status_info['tooltip']}" style="{container_style}; background-color: rgba({rgb_color}, 0.1); border: 1px solid {status_info['color']};"><span style="color: {status_info['color']}; font-size: {default_styles['icon_font_size']}; font-weight: {default_styles['icon_font_weight']};">{status_info['icon']}</span><span style="color: {status_info['color']};">{status_info['text']}</span></div>"""
 
     return html
+
+def render_header_status_indicator():
+    """
+    Render the database status indicator specifically for page headers
+
+    Pre-configured with header positioning styles (margin-right: 40px)
+
+    Returns:
+        str: HTML string for the header status indicator
+    """
+    header_styles = {
+        'margin-right': '40px'
+    }
+    return render_compact_status_indicator(header_styles)
 
 def _hex_to_rgb(hex_color):
     """Convert hex color to RGB values for rgba usage"""

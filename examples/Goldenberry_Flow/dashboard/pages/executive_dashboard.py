@@ -10,7 +10,7 @@ from pathlib import Path
 # Add parent directory to path for styles import
 sys.path.append(str(Path(__file__).parent.parent))
 from styles import COLORS
-from database import get_connection, render_compact_status_indicator
+from database import get_connection, render_header_status_indicator
 
 def render():
     """Render the Executive Dashboard page"""
@@ -27,8 +27,7 @@ def render():
     """, unsafe_allow_html=True)
 
     # Page header with compact status indicator using flexbox layout
-    from database.status_indicator import get_compact_database_status
-    status_info = get_compact_database_status()
+    status_indicator_html = render_header_status_indicator()
 
     # Full-width header with flexbox layout
     header_html = f"""
@@ -45,27 +44,7 @@ def render():
                       font-weight: 600;">
                 Executive Dashboard
             </h2>
-            <div style="display: inline-flex;
-                       align-items: center;
-                       gap: 6px;
-                       padding: 4px 8px;
-                       border-radius: 12px;
-                       background-color: rgba(0,119,182,0.1);
-                       border: 1px solid {status_info["color"]};
-                       font-size: 13px;
-                       font-weight: 500;
-                       white-space: nowrap;
-                       margin-right: 40px;"
-                 title="{status_info["tooltip"]}">
-                <span style="color: {status_info["color"]};
-                           font-size: 14px;
-                           font-weight: bold;">
-                    {status_info["icon"]}
-                </span>
-                <span style="color: {status_info["color"]};">
-                    {status_info["text"]}
-                </span>
-            </div>
+            {status_indicator_html}
         </div>
     """
 
@@ -83,132 +62,6 @@ def render():
         </p>
     """, unsafe_allow_html=True)
 
-def _display_database_status():
-    """Display database connection status and test query results in horizontal layout"""
-
-    try:
-        # Get database connection
-        db = get_connection()
-        status = db.get_connection_status()
-
-        if status["connected"]:
-            # Create horizontal layout for status information
-            col1, col2 = st.columns(2)
-
-            with col1:
-                # Connection status
-                st.markdown(f"""
-                    <div style="padding: 15px;
-                               background-color: {COLORS['card_bg']};
-                               border-left: 3px solid {COLORS['borders']};
-                               margin-bottom: 20px;
-                               height: 80px;
-                               display: flex;
-                               flex-direction: column;
-                               justify-content: center;">
-                        <p style="color: {COLORS['text_primary']};
-                                 margin: 0;
-                                 font-weight: 500;
-                                 font-size: 16px;">
-                            Database Status: Connected to Neo4j
-                        </p>
-                        <p style="color: {COLORS['text_secondary']};
-                                 margin: 5px 0 0 0;
-                                 font-size: 14px;">
-                            URI: {status["database_uri"]} | Database: {status["database_name"]}
-                        </p>
-                    </div>
-                """, unsafe_allow_html=True)
-
-            with col2:
-                # Execute test query - get product count
-                try:
-                    product_count = db.get_product_count()
-                    st.markdown(f"""
-                        <div style="padding: 15px;
-                                   background-color: {COLORS['card_bg']};
-                                   border-left: 3px solid {COLORS['borders']};
-                                   margin-bottom: 20px;
-                                   height: 80px;
-                                   display: flex;
-                                   flex-direction: column;
-                                   justify-content: center;">
-                            <p style="color: {COLORS['text_primary']};
-                                     margin: 0;
-                                     font-weight: 500;
-                                     font-size: 16px;">
-                                Products in Database: {product_count}
-                            </p>
-                            <p style="color: {COLORS['text_secondary']};
-                                     margin: 5px 0 0 0;
-                                     font-size: 14px;">
-                                Test query executed successfully
-                            </p>
-                        </div>
-                    """, unsafe_allow_html=True)
-
-                except Exception as query_error:
-                    st.markdown(f"""
-                        <div style="padding: 15px;
-                                   background-color: #FFF5F5;
-                                   border-left: 3px solid #E53E3E;
-                                   margin-bottom: 20px;
-                                   height: 80px;
-                                   display: flex;
-                                   flex-direction: column;
-                                   justify-content: center;">
-                            <p style="color: #E53E3E;
-                                     margin: 0;
-                                     font-weight: 500;">
-                                Query Error: Failed to retrieve product count
-                            </p>
-                            <p style="color: #A0AEC0;
-                                     margin: 5px 0 0 0;
-                                     font-size: 14px;">
-                                {str(query_error)}
-                            </p>
-                        </div>
-                    """, unsafe_allow_html=True)
-
-        else:
-            # Connection failed - display error in full width
-            st.markdown(f"""
-                <div style="padding: 15px;
-                           background-color: #FFF5F5;
-                           border-left: 3px solid #E53E3E;
-                           margin-bottom: 20px;">
-                    <p style="color: #E53E3E;
-                             margin: 0;
-                             font-weight: 500;">
-                        Database Status: Connection Failed
-                    </p>
-                    <p style="color: #A0AEC0;
-                             margin: 5px 0 0 0;
-                             font-size: 14px;">
-                        {status["error_message"]}
-                    </p>
-                </div>
-            """, unsafe_allow_html=True)
-
-    except Exception as e:
-        # General error handling
-        st.markdown(f"""
-            <div style="padding: 15px;
-                       background-color: #FFF5F5;
-                       border-left: 3px solid #E53E3E;
-                       margin-bottom: 20px;">
-                <p style="color: #E53E3E;
-                         margin: 0;
-                         font-weight: 500;">
-                    Database Error: Unable to initialize connection
-                </p>
-                <p style="color: #A0AEC0;
-                         margin: 5px 0 0 0;
-                         font-size: 14px;">
-                    {str(e)}
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
 
 def _display_metric_cards():
     """Display metric cards in grid layout utilizing full width"""
