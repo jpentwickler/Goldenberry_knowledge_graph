@@ -117,6 +117,63 @@ class Neo4jConnection:
             logger.error(f"Failed to get total revenue: {str(e)}")
             raise
 
+    def get_total_volume(self) -> float:
+        """
+        Calculate total volume across all products
+
+        Returns:
+            Total volume in kg
+        """
+        try:
+            query = """
+            MATCH (vd:VolumeData)
+            RETURN SUM(vd.volume) as totalVolume
+            """
+            result = self.execute_query(query)
+            return float(result[0]["totalVolume"]) if result and result[0]["totalVolume"] else 0.0
+        except Exception as e:
+            logger.error(f"Failed to get total volume: {str(e)}")
+            raise
+
+    def get_average_monthly_revenue(self) -> float:
+        """
+        Calculate average monthly revenue
+
+        Returns:
+            Average monthly revenue in USD
+        """
+        try:
+            query = """
+            MATCH (rs:RevenueStream)-[:HAS_VOLUME_DATA]->(vd:VolumeData)-[:OCCURS_IN_PERIOD]->(tp:TimePeriod),
+                  (rs)-[:HAS_PRICE_DATA]->(pd:PriceData)-[:PRICED_IN_PERIOD]->(tp)
+            WITH tp, SUM(vd.volume * pd.price) as monthlyRevenue
+            RETURN AVG(monthlyRevenue) as avgMonthlyRevenue
+            """
+            result = self.execute_query(query)
+            return float(result[0]["avgMonthlyRevenue"]) if result and result[0]["avgMonthlyRevenue"] else 0.0
+        except Exception as e:
+            logger.error(f"Failed to get average monthly revenue: {str(e)}")
+            raise
+
+    def get_average_price_per_kg(self) -> float:
+        """
+        Calculate weighted average price per kg
+
+        Returns:
+            Average price per kg in USD
+        """
+        try:
+            query = """
+            MATCH (rs:RevenueStream)-[:HAS_VOLUME_DATA]->(vd:VolumeData)-[:OCCURS_IN_PERIOD]->(tp:TimePeriod),
+                  (rs)-[:HAS_PRICE_DATA]->(pd:PriceData)-[:PRICED_IN_PERIOD]->(tp)
+            RETURN SUM(vd.volume * pd.price) / SUM(vd.volume) as avgPricePerKg
+            """
+            result = self.execute_query(query)
+            return float(result[0]["avgPricePerKg"]) if result and result[0]["avgPricePerKg"] else 0.0
+        except Exception as e:
+            logger.error(f"Failed to get average price per kg: {str(e)}")
+            raise
+
     def get_connection_status(self) -> Dict[str, Any]:
         """
         Get connection status information

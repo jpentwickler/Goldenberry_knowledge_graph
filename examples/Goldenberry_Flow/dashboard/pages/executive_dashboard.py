@@ -66,27 +66,20 @@ def render():
 def _display_metric_cards():
     """Display metric cards in grid layout utilizing full width"""
 
-    # Use 6-column layout for better width utilization
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    # Use 4-column layout for Phase 4 requirements
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         _display_total_revenue_card()
 
-    # Placeholder columns for future metric cards
     with col2:
-        _display_placeholder_card("Revenue Growth", "Coming Soon")
+        _display_total_volume_card()
 
     with col3:
-        _display_placeholder_card("Top Product", "Coming Soon")
+        _display_average_monthly_revenue_card()
 
     with col4:
-        _display_placeholder_card("Monthly Sales", "Coming Soon")
-
-    with col5:
-        _display_placeholder_card("Profit Margin", "Coming Soon")
-
-    with col6:
-        _display_placeholder_card("Customer Count", "Coming Soon")
+        _display_average_price_per_kg_card()
 
 def _display_total_revenue_card():
     """Display Total Revenue metric card"""
@@ -151,31 +144,191 @@ def _display_total_revenue_card():
             </div>
         """, unsafe_allow_html=True)
 
-def _display_placeholder_card(title: str, value: str):
-    """Display placeholder metric card for future implementation"""
+def _display_total_volume_card():
+    """Display Total Volume metric card"""
 
-    st.markdown(f"""
-        <div style="padding: 20px;
-                   background-color: #F8F9FA;
-                   border: 1px solid {COLORS['borders']};
-                   border-radius: 8px;
-                   margin-bottom: 20px;
-                   text-align: center;
-                   opacity: 0.6;">
-            <h3 style="color: {COLORS['text_secondary']};
-                     font-size: 14px;
-                     font-weight: 500;
-                     margin: 0 0 10px 0;
-                     text-transform: uppercase;
-                     letter-spacing: 0.5px;">
-                {title}
-            </h3>
-            <p style="color: {COLORS['text_secondary']};
-                     font-size: 16px;
-                     font-weight: 500;
-                     margin: 0;
-                     line-height: 1;">
-                {value}
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
+    try:
+        # Get database connection and retrieve total volume
+        db = get_connection()
+        total_volume = db.get_total_volume()
+
+        # Format volume with commas and kg suffix
+        formatted_volume = f"{total_volume:,.2f} kg"
+
+        # Display metric card
+        st.markdown(f"""
+            <div style="padding: 20px;
+                       background-color: #F8F9FA;
+                       border: 1px solid {COLORS['borders']};
+                       border-radius: 8px;
+                       margin-bottom: 20px;
+                       text-align: center;">
+                <h3 style="color: {COLORS['text_secondary']};
+                         font-size: 14px;
+                         font-weight: 500;
+                         margin: 0 0 10px 0;
+                         text-transform: uppercase;
+                         letter-spacing: 0.5px;">
+                    Total Volume
+                </h3>
+                <p style="color: {COLORS['text_primary']};
+                         font-size: 32px;
+                         font-weight: 700;
+                         margin: 0;
+                         line-height: 1;">
+                    {formatted_volume}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    except Exception as e:
+        # Error handling for metric card
+        st.markdown(f"""
+            <div style="padding: 20px;
+                       background-color: #FFF5F5;
+                       border: 1px solid #E53E3E;
+                       border-radius: 8px;
+                       margin-bottom: 20px;
+                       text-align: center;">
+                <h3 style="color: #E53E3E;
+                         font-size: 14px;
+                         font-weight: 500;
+                         margin: 0 0 10px 0;
+                         text-transform: uppercase;
+                         letter-spacing: 0.5px;">
+                    Total Volume
+                </h3>
+                <p style="color: #E53E3E;
+                         font-size: 16px;
+                         font-weight: 500;
+                         margin: 0;">
+                    Error: {str(e)}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+def _display_average_monthly_revenue_card():
+    """Display Average Monthly Revenue metric card"""
+
+    try:
+        # Get database connection and retrieve average monthly revenue
+        db = get_connection()
+        avg_monthly_revenue = db.get_average_monthly_revenue()
+
+        # Format revenue as currency
+        formatted_revenue = f"${avg_monthly_revenue:,.2f}"
+
+        # Display metric card
+        st.markdown(f"""
+            <div style="padding: 20px;
+                       background-color: #F8F9FA;
+                       border: 1px solid {COLORS['borders']};
+                       border-radius: 8px;
+                       margin-bottom: 20px;
+                       text-align: center;">
+                <h3 style="color: {COLORS['text_secondary']};
+                         font-size: 14px;
+                         font-weight: 500;
+                         margin: 0 0 10px 0;
+                         text-transform: uppercase;
+                         letter-spacing: 0.5px;">
+                    Avg Monthly Revenue
+                </h3>
+                <p style="color: {COLORS['text_primary']};
+                         font-size: 32px;
+                         font-weight: 700;
+                         margin: 0;
+                         line-height: 1;">
+                    {formatted_revenue}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    except Exception as e:
+        # Error handling for metric card
+        st.markdown(f"""
+            <div style="padding: 20px;
+                       background-color: #FFF5F5;
+                       border: 1px solid #E53E3E;
+                       border-radius: 8px;
+                       margin-bottom: 20px;
+                       text-align: center;">
+                <h3 style="color: #E53E3E;
+                         font-size: 14px;
+                         font-weight: 500;
+                         margin: 0 0 10px 0;
+                         text-transform: uppercase;
+                         letter-spacing: 0.5px;">
+                    Avg Monthly Revenue
+                </h3>
+                <p style="color: #E53E3E;
+                         font-size: 16px;
+                         font-weight: 500;
+                         margin: 0;">
+                    Error: {str(e)}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+def _display_average_price_per_kg_card():
+    """Display Average Price per KG metric card"""
+
+    try:
+        # Get database connection and retrieve average price per kg
+        db = get_connection()
+        avg_price = db.get_average_price_per_kg()
+
+        # Format price with /kg suffix
+        formatted_price = f"${avg_price:.2f}/kg"
+
+        # Display metric card
+        st.markdown(f"""
+            <div style="padding: 20px;
+                       background-color: #F8F9FA;
+                       border: 1px solid {COLORS['borders']};
+                       border-radius: 8px;
+                       margin-bottom: 20px;
+                       text-align: center;">
+                <h3 style="color: {COLORS['text_secondary']};
+                         font-size: 14px;
+                         font-weight: 500;
+                         margin: 0 0 10px 0;
+                         text-transform: uppercase;
+                         letter-spacing: 0.5px;">
+                    Avg Price per KG
+                </h3>
+                <p style="color: {COLORS['text_primary']};
+                         font-size: 32px;
+                         font-weight: 700;
+                         margin: 0;
+                         line-height: 1;">
+                    {formatted_price}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    except Exception as e:
+        # Error handling for metric card
+        st.markdown(f"""
+            <div style="padding: 20px;
+                       background-color: #FFF5F5;
+                       border: 1px solid #E53E3E;
+                       border-radius: 8px;
+                       margin-bottom: 20px;
+                       text-align: center;">
+                <h3 style="color: #E53E3E;
+                         font-size: 14px;
+                         font-weight: 500;
+                         margin: 0 0 10px 0;
+                         text-transform: uppercase;
+                         letter-spacing: 0.5px;">
+                    Avg Price per KG
+                </h3>
+                <p style="color: #E53E3E;
+                         font-size: 16px;
+                         font-weight: 500;
+                         margin: 0;">
+                    Error: {str(e)}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
