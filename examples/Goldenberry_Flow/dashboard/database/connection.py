@@ -174,6 +174,47 @@ class Neo4jConnection:
             logger.error(f"Failed to get average price per kg: {str(e)}")
             raise
 
+    def get_product_metrics(self) -> List[Dict[str, Any]]:
+        """
+        Get metrics for all products
+
+        Returns:
+            List of dictionaries containing product metrics
+        """
+        try:
+            query = """
+            MATCH (p:Product)
+            OPTIONAL MATCH (rs:RevenueStream)-[:SELLS_PRODUCT]->(p)
+            OPTIONAL MATCH (rs)-[:HAS_VOLUME_DATA]->(vd:VolumeData)-[:OCCURS_IN_PERIOD]->(tp:TimePeriod)
+            OPTIONAL MATCH (rs)-[:HAS_PRICE_DATA]->(pd:PriceData)-[:PRICED_IN_PERIOD]->(tp)
+            WHERE tp.id = tp.id
+            WITH p.name as Product,
+                 SUM(vd.volume * pd.price) as TotalRevenue,
+                 SUM(vd.volume) as TotalVolume,
+                 AVG(pd.price) as AvgPrice
+            RETURN Product,
+                   TotalRevenue,
+                   TotalVolume,
+                   AvgPrice
+            ORDER BY TotalRevenue DESC
+            """
+            result = self.execute_query(query)
+
+            # Process results to ensure proper data types
+            processed_results = []
+            for item in result:
+                processed_results.append({
+                    "Product": item["Product"],
+                    "TotalRevenue": float(item["TotalRevenue"]) if item["TotalRevenue"] else 0.0,
+                    "TotalVolume": float(item["TotalVolume"]) if item["TotalVolume"] else 0.0,
+                    "AvgPrice": float(item["AvgPrice"]) if item["AvgPrice"] else 0.0
+                })
+
+            return processed_results
+        except Exception as e:
+            logger.error(f"Failed to get product metrics: {str(e)}")
+            raise
+
     def get_connection_status(self) -> Dict[str, Any]:
         """
         Get connection status information

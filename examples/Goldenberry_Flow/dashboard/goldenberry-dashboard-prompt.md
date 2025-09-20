@@ -353,3 +353,47 @@ ORDER BY Year, Month, Product
 ## Implementation Approach
 
 Work through each phase sequentially. After completing each phase, test and approve before moving to the next. This ensures full control over every visual component added to the application.
+
+## Technical Notes and Known Issues
+
+### Streamlit HTML Parser Bug with Comments
+
+**Issue**: When using `st.markdown()` with `unsafe_allow_html=True`, HTML content that contains:
+- Indented HTML comments (e.g., `    <!-- Section Comment -->`)
+- Followed by HTML tags on subsequent lines
+
+Will be treated as fenced code blocks by Streamlit's Markdown parser, causing raw HTML to display instead of rendered content.
+
+**Example of Problematic Code**:
+```python
+st.markdown(f"""
+    <div style="...">
+        <!-- Revenue Section -->
+        <div style="...">
+            <h3>Total Revenue</h3>
+            <p>{value}</p>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+```
+
+**Root Cause**: Streamlit's Markdown parser interprets the combination of indentation + HTML comments as the start of a fenced code block, escaping all subsequent HTML content.
+
+**Solution**: Remove all HTML comments from `st.markdown()` content:
+```python
+st.markdown(f"""
+    <div style="...">
+        <div style="...">
+            <h3>Total Revenue</h3>
+            <p>{value}</p>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+```
+
+**Best Practices for Complex HTML in Streamlit**:
+1. Avoid HTML comments inside `st.markdown()` blocks
+2. Use Python comments above the `st.markdown()` call for documentation
+3. Keep HTML structure simple and avoid deep nesting when possible
+4. Test HTML rendering frequently during development
+5. Consider using Streamlit native components for complex layouts when HTML fails
