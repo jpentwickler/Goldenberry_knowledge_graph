@@ -250,5 +250,3 @@ def inject_app_css(st_module) -> None:
     """Write the CSS to the page once."""
 
     st_module.markdown(app_css(), unsafe_allow_html=True)
-
-

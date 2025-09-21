@@ -117,19 +117,21 @@ class Neo4jConnection:
         return float(data[0]["avgPricePerKg"] or 0.0) if data else 0.0
 
     def get_product_metrics(self) -> List[Dict[str, Any]]:
+        """Get metrics for all products"""
+
         query = """
         MATCH (p:Product)
         OPTIONAL MATCH (rs:RevenueStream)-[:SELLS_PRODUCT]->(p)
         OPTIONAL MATCH (rs)-[:HAS_VOLUME_DATA]->(vd:VolumeData)-[:OCCURS_IN_PERIOD]->(tp:TimePeriod)
         OPTIONAL MATCH (rs)-[:HAS_PRICE_DATA]->(pd:PriceData)-[:PRICED_IN_PERIOD]->(tp)
-        WITH p.name AS product,
-             SUM(vd.volume * pd.price) AS totalRevenue,
-             SUM(vd.volume) AS totalVolume,
-             CASE WHEN SUM(vd.volume) = 0 THEN null ELSE SUM(vd.volume * pd.price) / SUM(vd.volume) END AS avgPrice
-        RETURN product AS Product,
-               totalRevenue AS TotalRevenue,
-               totalVolume AS TotalVolume,
-               avgPrice AS AvgPrice
+        WITH p.name as Product,
+             SUM(vd.volume * pd.price) as TotalRevenue,
+             SUM(vd.volume) as TotalVolume,
+             CASE WHEN SUM(vd.volume) = 0 THEN null ELSE SUM(vd.volume * pd.price) / SUM(vd.volume) END as AvgPrice
+        RETURN Product,
+               TotalRevenue,
+               TotalVolume,
+               AvgPrice
         ORDER BY TotalRevenue DESC
         """
         rows = self.execute_query(query)
@@ -145,6 +147,34 @@ class Neo4jConnection:
                 }
             )
         return processed
+    def get_revenue_timeseries(self) -> List[Dict[str, Any]]:
+        """Return monthly revenue per product."""
+
+        query = """
+        MATCH (p:Product)
+        MATCH (pd:PriceData)-[:PRICE_FOR_PRODUCT]->(p)
+        MATCH (vd:VolumeData)-[:VOLUME_FOR_PRODUCT]->(p)
+        MATCH (pd)-[:PRICED_IN_PERIOD]->(tp:TimePeriod)
+        MATCH (vd)-[:OCCURS_IN_PERIOD]->(tp2:TimePeriod)
+        WHERE tp.id = tp2.id
+        WITH p.name AS Product, tp.year AS Year, tp.month AS Month, SUM(pd.price * vd.volume) AS MonthlyRevenue
+        RETURN Product, Year, Month, MonthlyRevenue
+        ORDER BY Year, Month, Product
+        """
+        result = self.execute_query(query)
+
+        formatted: List[Dict[str, Any]] = []
+        for row in result:
+            formatted.append(
+                {
+                    "product": row["Product"],
+                    "year": int(row["Year"]),
+                    "month": int(row["Month"]),
+                    "revenue": float(row["MonthlyRevenue"] or 0.0),
+                }
+            )
+
+        return formatted
 
     # Housekeeping ------------------------------------------------------
     def get_connection_status(self) -> Dict[str, Any]:
@@ -180,3 +210,6 @@ __all__ = [
     "get_connection",
     "close_connection",
 ]
+
+
+
