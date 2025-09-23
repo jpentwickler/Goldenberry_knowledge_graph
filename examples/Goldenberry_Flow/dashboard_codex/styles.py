@@ -191,6 +191,46 @@ def app_css() -> str:
                 color: #B91C1C;
             }}
 
+            [data-testid="stMultiSelect"] span[data-baseweb="tag"] {{
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                background-color: var(--color-primary);
+                border-radius: 999px;
+                color: #FFFFFF;
+                font-weight: 600;
+                padding: 0.2rem 0.65rem;
+            }}
+
+            [data-testid="stMultiSelect"] span[data-baseweb="tag"] svg {{
+                color: #FFFFFF;
+                opacity: 0.9;
+            }}
+
+            [data-testid="stMultiSelect"] span[data-baseweb="tag"]:hover {{
+                background-color: var(--color-primary-alt);
+            }}
+
+            [data-baseweb="menu"] {{
+                border: 1px solid var(--color-border);
+                border-radius: 12px;
+                box-shadow: 0 16px 35px rgba(15, 23, 42, 0.08);
+                background-color: #FFFFFF;
+            }}
+
+            [data-baseweb="option"] {{
+                color: var(--color-text);
+                padding: 0.55rem 0.75rem;
+            }}
+
+            [data-baseweb="option"]:hover {{
+                background-color: var(--color-primary-tint);
+            }}
+
+            [data-baseweb="option"][aria-selected="true"] {{
+                background-color: rgba(29, 78, 216, 0.12);
+                color: var(--color-primary-alt);
+            }}
             .product-grid {{
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
@@ -250,3 +290,8 @@ def inject_app_css(st_module) -> None:
     """Write the CSS to the page once."""
 
     st_module.markdown(app_css(), unsafe_allow_html=True)
+
+
+
+
+

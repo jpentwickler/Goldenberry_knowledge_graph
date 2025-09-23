@@ -37,9 +37,11 @@ configuration as the reference implementation.
 - Consolidated metric card renderer with graceful error states
 - Product performance grid and revenue-share donut chart driven by live Neo4j metrics
 - Revenue overview timeline with interactive date and product filters
+- Quarterly performance section with independent filters and summary preview
 - Sanitised HTML output to prevent raw markup from leaking onto the page
 - Modern colour palette and spacing for a calmer, more professional look
 
 Next up: revenue timelines, deeper product analytics, and interactive
 filters as outlined in the remaining project phases.
+
 

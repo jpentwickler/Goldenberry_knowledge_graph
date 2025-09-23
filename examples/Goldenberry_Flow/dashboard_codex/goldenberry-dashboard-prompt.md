@@ -157,7 +157,7 @@ Accent: #90E0EF (light blue for hover/selection)
 
 ## PHASE 7: Revenue Timeline Filters
 
-**Status:** In progress - filters implemented with responsive timeline chart framework.
+**Status:** Completed - timeline filters implemented with responsive layout on Revenue Overview.
 
 
 ### Goal: Create Revenue Overview page with timeline section
@@ -184,7 +184,7 @@ Accent: #90E0EF (light blue for hover/selection)
 
 ---
 
-## PHASE 8: Timeline Chart
+## PHASE 8: Timeline Chart\n\n**Status:** Completed - multi-product revenue timeline chart updates instantly with filters.
 
 ### Goal: Add revenue trend line chart
 
@@ -205,6 +205,9 @@ Accent: #90E0EF (light blue for hover/selection)
 ---
 
 ## PHASE 9: Quarterly Performance Filters
+
+**Status:** Completed - polished quarterly filter stack with mode toggle ready for visualization.
+
 
 ### Goal: Add quarterly section with its own filters
 
@@ -404,3 +407,8 @@ st.markdown(f"""
 4. Test HTML rendering frequently during development
 5. Consider using Streamlit native components for complex layouts when HTML fails
 
+
+### Phase 9 Notes (2025-09-23)
+- Quarterly filters now use Streamlit `st.multiselect` components with shared session-state keys (see `pages/revenue_overview.py`).
+- Timeline month selects remain on BaseWeb defaults; custom CSS overrides for select inputs were removed to restore correct rendering.
+- Form control styling falls back to the previous palette; multiselect tag styling retained in `styles.py`.

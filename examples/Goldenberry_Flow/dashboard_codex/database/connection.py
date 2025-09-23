@@ -176,6 +176,55 @@ class Neo4jConnection:
 
         return formatted
 
+    def get_quarterly_revenue(self) -> List[Dict[str, Any]]:
+        """Return quarterly revenue grouped by product."""
+
+        query = """
+        MATCH (p:Product)
+        MATCH (pd:PriceData)-[:PRICE_FOR_PRODUCT]->(p)
+        MATCH (vd:VolumeData)-[:VOLUME_FOR_PRODUCT]->(p)
+        MATCH (pd)-[:PRICED_IN_PERIOD]->(tp:TimePeriod)
+        MATCH (vd)-[:OCCURS_IN_PERIOD]->(tp2:TimePeriod)
+        WHERE tp.id = tp2.id
+        WITH p.name AS Product,
+             tp.year AS Year,
+             tp.quarter AS Quarter,
+             SUM(pd.price * vd.volume) AS QuarterlyRevenue
+        RETURN Product, Year, Quarter, QuarterlyRevenue
+        ORDER BY Year, Quarter, Product
+        """
+        result = self.execute_query(query)
+
+        records: List[Dict[str, Any]] = []
+        for row in result:
+            records.append(
+                {
+                    "product": row["Product"],
+                    "year": int(row["Year"]),
+                    "quarter": _parse_quarter_value(row.get("Quarter")),
+                    "revenue": float(row["QuarterlyRevenue"] or 0.0),
+                }
+            )
+
+        return records
+
+
+# ------------------------------------------------------------------
+def _parse_quarter_value(raw) -> int:
+    """Convert quarter values like "Q3" or 3 to an integer."""
+
+    if raw is None:
+        return 0
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, str):
+        digits = ''.join(ch for ch in raw if ch.isdigit())
+        return int(digits) if digits else 0
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return 0
+
     # Housekeeping ------------------------------------------------------
     def get_connection_status(self) -> Dict[str, Any]:
         return {
@@ -213,3 +262,17 @@ __all__ = [
 
 
 
+def _parse_quarter_value(raw) -> int:
+    """Convert quarter values like "Q3" or 3 to an integer."""
+
+    if raw is None:
+        return 0
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, str):
+        digits = ''.join(ch for ch in raw if ch.isdigit())
+        return int(digits) if digits else 0
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return 0

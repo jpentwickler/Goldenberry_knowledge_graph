@@ -1,4 +1,4 @@
-"""Revenue Overview page with timeline filters."""
+"""Revenue Overview page with timeline and quarterly filters."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import calendar
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import pandas as pd
 import plotly.express as px
@@ -50,11 +50,27 @@ class MonthOption:
         return self.year, self.month
 
 
+@dataclass(frozen=True)
+class QuarterOption:
+    year: int
+    quarter: int
+
+    @property
+    def label(self) -> str:
+        return f"Q{self.quarter} {self.year}"
+
+    @property
+    def sort_key(self) -> Tuple[int, int]:
+        return self.year, self.quarter
+
+
+
 def render() -> None:
     """Render the Revenue Overview page."""
 
     connection = get_connection()
     timeline_df = _load_timeline_dataframe(connection)
+    quarter_df = _load_quarterly_dataframe(connection)
 
     render_page_header(
         "Revenue Overview",
@@ -63,7 +79,7 @@ def render() -> None:
     _render_timeline_section(timeline_df)
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
-    st.caption("Additional revenue insights (cohorts and quarterly performance) will arrive in upcoming phases.")
+    _render_quarterly_section(quarter_df)
 
 
 def _load_timeline_dataframe(connection) -> pd.DataFrame:
@@ -78,9 +94,32 @@ def _load_timeline_dataframe(connection) -> pd.DataFrame:
     return df[["product", "display_name", "date", "revenue"]]
 
 
+def _load_quarterly_dataframe(connection) -> pd.DataFrame:
+    records = connection.get_quarterly_revenue()
+    if not records:
+        return pd.DataFrame(columns=["product", "display_name", "year", "quarter", "revenue"])
+
+    df = pd.DataFrame(records)
+    df["display_name"] = df["product"].map(PRODUCT_LABELS).fillna(df["product"])
+    df = df.sort_values(["year", "quarter"]).reset_index(drop=True)
+    return df[["product", "display_name", "year", "quarter", "revenue"]]
+
+
 def _build_month_options(df: pd.DataFrame) -> List[MonthOption]:
     unique = df[["date"]].drop_duplicates().sort_values("date")
     return [MonthOption(row.date.year, row.date.month) for row in unique.itertuples()]  # type: ignore[attr-defined]
+
+
+def _build_quarter_options(df: pd.DataFrame) -> List[QuarterOption]:
+    unique = df[["year", "quarter"]].drop_duplicates().sort_values(["year", "quarter"])
+    return [QuarterOption(int(row.year), int(row.quarter)) for row in unique.itertuples()]  # type: ignore[attr-defined]
+
+
+def _timeline_product_key(raw_name: str) -> str:
+    display = PRODUCT_LABELS.get(raw_name, raw_name)
+    return f"timeline-product-{display.lower().replace(' ', '-')}"
+
+
 
 
 def _render_timeline_section(df: pd.DataFrame) -> None:
@@ -128,7 +167,9 @@ def _render_timeline_section(df: pd.DataFrame) -> None:
     product_columns = st.columns(len(PRODUCT_LABELS))
     selected_products: List[str] = []
     for (raw_name, display_name), column in zip(PRODUCT_LABELS.items(), product_columns):
-        if column.checkbox(display_name, value=True, key=f"timeline-product-{display_name.lower().replace(' ', '-')}"):
+        key = _timeline_product_key(raw_name)
+        checked = column.checkbox(display_name, value=st.session_state.get(key, True), key=key)
+        if checked:
             selected_products.append(raw_name)
 
     if not selected_products:
@@ -206,5 +247,156 @@ def _render_timeline_section(df: pd.DataFrame) -> None:
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
+def _render_quarterly_section(df: pd.DataFrame) -> None:
+    st.markdown(
+        """
+        <div class="section-header" style="margin-top: 3rem;">
+            <h2 class="section-title">Quarterly Performance</h2>
+        </div>
+        <hr class='section-divider'>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if df.empty:
+        st.markdown(
+            "<div class='empty-state'>Quarterly revenue data is not available yet.</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    quarter_options = _build_quarter_options(df)
+    if not quarter_options:
+        st.markdown(
+            "<div class='empty-state'>No quarterly revenue records found.</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    quarter_filter_key = "quarter-filter-selection"
+    known_quarters_key = "quarter-filter-known"
+    current_quarter_selection = st.session_state.get(quarter_filter_key)
+    known_quarter_ids = set(st.session_state.get(known_quarters_key, []))
+    if current_quarter_selection is None:
+        st.session_state[quarter_filter_key] = quarter_options
+    else:
+        valid_quarters = [
+            option for option in current_quarter_selection if option in quarter_options
+        ]
+        auto_selected = [
+            option
+            for option in quarter_options
+            if (option.year, option.quarter) not in known_quarter_ids
+        ]
+        combined_quarters = valid_quarters + [
+            option for option in auto_selected if option not in valid_quarters
+        ]
+        st.session_state[quarter_filter_key] = combined_quarters
+    st.session_state[known_quarters_key] = [
+        (option.year, option.quarter) for option in quarter_options
+    ]
+
+    product_filter_key = "quarter-product-filter"
+    product_known_key = "quarter-product-known"
+    all_products = list(PRODUCT_LABELS.keys())
+    current_product_selection = st.session_state.get(product_filter_key)
+    known_products = set(st.session_state.get(product_known_key, []))
+    if current_product_selection is None:
+        st.session_state[product_filter_key] = all_products
+    else:
+        valid_products = [
+            product for product in current_product_selection if product in PRODUCT_LABELS
+        ]
+        new_products = [
+            product for product in all_products if product not in known_products
+        ]
+        st.session_state[product_filter_key] = valid_products + [
+            product for product in new_products if product not in valid_products
+        ]
+    st.session_state[product_known_key] = all_products
+
+    filter_columns = st.columns([0.55, 0.45])
+    with filter_columns[0]:
+        selected_quarter_options = st.multiselect(
+            "Quarters",
+            options=quarter_options,
+            format_func=lambda option: option.label,
+            key=quarter_filter_key,
+            placeholder="Select quarters",
+        )
+    with filter_columns[1]:
+        selected_product_options = st.multiselect(
+            "Products",
+            options=all_products,
+            format_func=lambda raw: PRODUCT_LABELS.get(raw, raw),
+            key=product_filter_key,
+            placeholder="Select products",
+        )
+
+    if not selected_quarter_options:
+        st.warning("Select at least one quarter to review performance.")
+        return
+
+    selected_quarters = {
+        (option.year, option.quarter) for option in selected_quarter_options
+    }
+
+    if not selected_product_options:
+        st.warning("Choose at least one product to display quarterly performance.")
+        return
+
+    selected_products = list(selected_product_options)
+
+    display_modes = ("Stacked", "Grouped")
+    default_mode = st.session_state.get("quarter-display-mode", display_modes[0])
+    display_mode = st.radio(
+        "Bar display",
+        options=display_modes,
+        horizontal=True,
+        index=display_modes.index(default_mode) if default_mode in display_modes else 0,
+    )
+    st.session_state["quarter-display-mode"] = display_mode
+
+    filtered = df[
+        df["product"].isin(selected_products)
+        & df.apply(lambda row: (int(row["year"]), int(row["quarter"])) in selected_quarters, axis=1)
+    ].copy()
+
+    if filtered.empty:
+        st.markdown(
+            "<div class='empty-state'>No revenue recorded for the selected quarters and products.</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    filtered["quarter_label"] = filtered.apply(lambda row: f"Q{int(row['quarter'])} {int(row['year'])}", axis=1)
+
+    summary = (
+        filtered.groupby("display_name")["revenue"].sum().sort_values(ascending=False)
+    )
+    summary_rows = "".join(
+        f"<div style='display:flex; justify-content:space-between; color:{COLORS['text_primary']};'>"
+        f"<span>{name}</span><span>${value:,.0f}</span></div>"
+        for name, value in summary.items()
+    )
+    card_html = f"""
+        <div style="background-color:{COLORS['surface']}; border:1px solid {COLORS['border']}; border-radius:12px; padding:18px; margin-top:16px;">
+            <p style="margin:0 0 10px 0; color:{COLORS['text_muted']}; font-size:0.9rem;">Quarterly visualization arrives in Phase 10. Current selection:</p>
+            <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+                <span style="font-weight:600; color:{COLORS['text_primary']};">Mode: {display_mode}</span>
+                <span style="color:{COLORS['text_muted']};">{len(selected_quarters)} quarters &middot; {len(selected_products)} products</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                {summary_rows or f"<span style='color:{COLORS['text_muted']};'>No revenue values available.</span>"}
+            </div>
+        </div>
+    """
+    st.markdown(card_html, unsafe_allow_html=True)
+
+
+
 if __name__ == "__main__":  # pragma: no cover - standalone Streamlit page
     render()
+
+
+
