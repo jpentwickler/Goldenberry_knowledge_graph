@@ -257,6 +257,26 @@ def _render_timeline_section(df: pd.DataFrame) -> None:
 
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
+    summary = (
+        filtered.groupby("display_name")["revenue"].sum().sort_values(ascending=False)
+    )
+    summary_rows = "".join(
+        f"<div style='display:flex; justify-content:space-between; color:{COLORS['text_primary']};'>"
+        f"<span>{name}</span><span>${value:,.0f}</span></div>"
+        for name, value in summary.items()
+    )
+    empty_summary_html = summary_rows or (
+        f"<span style=\"color:{COLORS['text_muted']};\">No revenue values available.</span>"
+    )
+    container_html = (
+        f"<div style=\"background-color:{COLORS['surface']}; border:1px solid {COLORS['border']}; "
+        f"border-radius:12px; padding:16px; margin-top:12px;\">"
+        f"<p style=\"margin:0 0 8px 0; color:{COLORS['text_muted']}; font-size:0.85rem;\">Revenue by product</p>"
+        f"{empty_summary_html}"
+        "</div>"
+    )
+    st.markdown(container_html, unsafe_allow_html=True)
+
 
 def _render_quarterly_section(df: pd.DataFrame) -> None:
     st.markdown(
@@ -290,6 +310,7 @@ def _render_quarterly_section(df: pd.DataFrame) -> None:
     known_quarter_ids = set(st.session_state.get(known_quarters_key, []))
     if current_quarter_selection is None:
         st.session_state[quarter_filter_key] = quarter_options
+        current_quarter_selection = quarter_options
     else:
         valid_quarters = [
             option for option in current_quarter_selection if option in quarter_options
@@ -302,7 +323,9 @@ def _render_quarterly_section(df: pd.DataFrame) -> None:
         combined_quarters = valid_quarters + [
             option for option in auto_selected if option not in valid_quarters
         ]
-        st.session_state[quarter_filter_key] = combined_quarters
+        if combined_quarters != current_quarter_selection:
+            st.session_state[quarter_filter_key] = combined_quarters
+            current_quarter_selection = combined_quarters
     st.session_state[known_quarters_key] = [
         (option.year, option.quarter) for option in quarter_options
     ]
@@ -314,6 +337,7 @@ def _render_quarterly_section(df: pd.DataFrame) -> None:
     known_products = set(st.session_state.get(product_known_key, []))
     if current_product_selection is None:
         st.session_state[product_filter_key] = all_products
+        current_product_selection = all_products
     else:
         valid_products = [
             product for product in current_product_selection if product in PRODUCT_LABELS
@@ -321,9 +345,12 @@ def _render_quarterly_section(df: pd.DataFrame) -> None:
         new_products = [
             product for product in all_products if product not in known_products
         ]
-        st.session_state[product_filter_key] = valid_products + [
+        combined_products = valid_products + [
             product for product in new_products if product not in valid_products
         ]
+        if combined_products != current_product_selection:
+            st.session_state[product_filter_key] = combined_products
+            current_product_selection = combined_products
     st.session_state[product_known_key] = all_products
 
     filter_columns = st.columns([0.55, 0.45])
@@ -359,14 +386,15 @@ def _render_quarterly_section(df: pd.DataFrame) -> None:
     selected_products = list(selected_product_options)
 
     display_modes = ("Stacked", "Grouped")
-    default_mode = st.session_state.get("quarter-display-mode", display_modes[0])
+    display_mode_key = "quarter-display-mode"
+    if display_mode_key not in st.session_state:
+        st.session_state[display_mode_key] = display_modes[0]
     display_mode = st.radio(
         "Bar display",
         options=display_modes,
         horizontal=True,
-        index=display_modes.index(default_mode) if default_mode in display_modes else 0,
+        key=display_mode_key,
     )
-    st.session_state["quarter-display-mode"] = display_mode
 
     filtered = df[
         df["product"].isin(selected_products)
@@ -380,7 +408,74 @@ def _render_quarterly_section(df: pd.DataFrame) -> None:
         )
         return
 
-    filtered["quarter_label"] = filtered.apply(lambda row: f"Q{int(row['quarter'])} {int(row['year'])}", axis=1)
+    filtered["quarter_label"] = filtered.apply(
+        lambda row: f"Q{int(row['quarter'])} {int(row['year'])}", axis=1
+    )
+
+    quarter_order = (
+        filtered.sort_values(["year", "quarter"])["quarter_label"].drop_duplicates().tolist()
+    )
+
+    total_revenue = filtered["revenue"].sum()
+    summary_bar = (
+        f"<div style=\"display:flex; flex-wrap:wrap; gap:12px; margin:12px 0; color:{COLORS['text_muted']}; font-size:0.9rem;\">"
+        f"<span style=\"font-weight:600; color:{COLORS['text_primary']};\">{display_mode} mode</span>"
+        f"<span>{len(selected_quarters)} quarter{'s' if len(selected_quarters) != 1 else ''}</span>"
+        f"<span>{len(selected_products)} product{'s' if len(selected_products) != 1 else ''}</span>"
+        f"<span>Total revenue <strong>${total_revenue:,.0f}</strong></span>"
+        "</div>"
+    )
+    st.markdown(summary_bar, unsafe_allow_html=True)
+
+    chart_df = (
+        filtered.groupby(["quarter_label", "display_name"], as_index=False)["revenue"].sum()
+    )
+    chart_df["revenue_display"] = chart_df["revenue"].map(lambda value: f"${value:,.0f}")
+
+    quarter_position = {label: idx for idx, label in enumerate(quarter_order)}
+    chart_df["quarter_index"] = chart_df["quarter_label"].map(quarter_position)
+    chart_df = chart_df.sort_values(["quarter_index", "display_name"]).drop(columns=["quarter_index"])
+
+    color_map = {
+        name: PRODUCT_PALETTE.get(name, COLORS["primary"])
+        for name in chart_df["display_name"].unique()
+    }
+
+    fig = px.bar(
+        chart_df,
+        x="quarter_label",
+        y="revenue",
+        color="display_name",
+        custom_data=["revenue_display", "display_name"],
+        category_orders={"quarter_label": quarter_order},
+        color_discrete_map=color_map,
+    )
+
+    fig.update_layout(
+        barmode="stack" if display_mode == "Stacked" else "group",
+        margin=dict(t=20, b=25, l=10, r=10),
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.2,
+            x=0.5,
+            xanchor="center",
+            title="",
+        ),
+        font=dict(color=COLORS["text_primary"], family="Inter, 'Segoe UI', sans-serif"),
+    )
+
+    fig.update_traces(
+        hovertemplate="<b>%{x}</b><br>%{customdata[1]}: %{customdata[0]}<extra></extra>",
+        marker_line=dict(width=0),
+    )
+
+    fig.update_xaxes(title="", showgrid=True, gridcolor=COLORS["border"], tickangle=-15)
+    fig.update_yaxes(title="Revenue (USD)", showgrid=True, gridcolor=COLORS["border"], zeroline=False)
+
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     summary = (
         filtered.groupby("display_name")["revenue"].sum().sort_values(ascending=False)
@@ -390,19 +485,17 @@ def _render_quarterly_section(df: pd.DataFrame) -> None:
         f"<span>{name}</span><span>${value:,.0f}</span></div>"
         for name, value in summary.items()
     )
-    card_html = f"""
-        <div style="background-color:{COLORS['surface']}; border:1px solid {COLORS['border']}; border-radius:12px; padding:18px; margin-top:16px;">
-            <p style="margin:0 0 10px 0; color:{COLORS['text_muted']}; font-size:0.9rem;">Quarterly visualization arrives in Phase 10. Current selection:</p>
-            <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
-                <span style="font-weight:600; color:{COLORS['text_primary']};">Mode: {display_mode}</span>
-                <span style="color:{COLORS['text_muted']};">{len(selected_quarters)} quarters &middot; {len(selected_products)} products</span>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:6px;">
-                {summary_rows or f"<span style='color:{COLORS['text_muted']};'>No revenue values available.</span>"}
-            </div>
-        </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
+    empty_summary_html = summary_rows or (
+        f"<span style=\"color:{COLORS['text_muted']};\">No revenue values available.</span>"
+    )
+    container_html = (
+        f"<div style=\"background-color:{COLORS['surface']}; border:1px solid {COLORS['border']}; "
+        f"border-radius:12px; padding:16px; margin-top:12px;\">"
+        f"<p style=\"margin:0 0 8px 0; color:{COLORS['text_muted']}; font-size:0.85rem;\">Revenue by product</p>"
+        f"{empty_summary_html}"
+        "</div>"
+    )
+    st.markdown(container_html, unsafe_allow_html=True)
 
 
 
