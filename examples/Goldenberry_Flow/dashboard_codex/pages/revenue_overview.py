@@ -115,11 +115,6 @@ def _build_quarter_options(df: pd.DataFrame) -> List[QuarterOption]:
     return [QuarterOption(int(row.year), int(row.quarter)) for row in unique.itertuples()]  # type: ignore[attr-defined]
 
 
-def _timeline_product_key(raw_name: str) -> str:
-    display = PRODUCT_LABELS.get(raw_name, raw_name)
-    return f"timeline-product-{display.lower().replace(' ', '-')}"
-
-
 
 
 def _render_timeline_section(df: pd.DataFrame) -> None:
@@ -164,13 +159,29 @@ def _render_timeline_section(df: pd.DataFrame) -> None:
         format_func=lambda opt: opt.label,
     )
 
-    product_columns = st.columns(len(PRODUCT_LABELS))
-    selected_products: List[str] = []
-    for (raw_name, display_name), column in zip(PRODUCT_LABELS.items(), product_columns):
-        key = _timeline_product_key(raw_name)
-        checked = column.checkbox(display_name, value=st.session_state.get(key, True), key=key)
-        if checked:
-            selected_products.append(raw_name)
+    product_filter_key = "timeline-product-filter"
+    all_products = list(PRODUCT_LABELS.keys())
+    current_selection = st.session_state.get(product_filter_key)
+    if current_selection is None:
+        st.session_state[product_filter_key] = all_products
+    else:
+        filtered_selection = [
+            product for product in current_selection if product in PRODUCT_LABELS
+        ]
+        if filtered_selection:
+            st.session_state[product_filter_key] = filtered_selection
+        elif current_selection:
+            st.session_state[product_filter_key] = all_products
+        else:
+            st.session_state[product_filter_key] = []
+
+    selected_product_options = st.multiselect(
+        "Products",
+        options=all_products,
+        format_func=lambda raw: PRODUCT_LABELS.get(raw, raw),
+        key=product_filter_key,
+    )
+    selected_products = list(selected_product_options)
 
     if not selected_products:
         st.warning("Select at least one product to view the revenue timeline.")
@@ -397,6 +408,8 @@ def _render_quarterly_section(df: pd.DataFrame) -> None:
 
 if __name__ == "__main__":  # pragma: no cover - standalone Streamlit page
     render()
+
+
 
 
 

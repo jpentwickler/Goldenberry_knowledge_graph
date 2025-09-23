@@ -411,4 +411,6 @@ st.markdown(f"""
 ### Phase 9 Notes (2025-09-23)
 - Quarterly filters now use Streamlit `st.multiselect` components with shared session-state keys (see `pages/revenue_overview.py`).
 - Timeline month selects remain on BaseWeb defaults; custom CSS overrides for select inputs were removed to restore correct rendering.
-- Form control styling falls back to the previous palette; multiselect tag styling retained in `styles.py`.
+- Form control styling falls back to the previous palette; multiselect tag styling retained in styles.py.
+- Timeline product filters now use a consolidated multiselect control on the Revenue Overview timeline page.
+- Form control styling falls back to the previous palette; multiselect tag styling retained in styles.py.
