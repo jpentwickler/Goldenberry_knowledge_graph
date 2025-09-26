@@ -263,6 +263,8 @@ Accent: #90E0EF (light blue for hover/selection)
 
 ## PHASE 11: Product Selector
 
+**Status:** Completed - product selectbox defaults to Goldenberries and persists user choice.
+
 ### Goal: Start Product Performance page
 
 ### Add component:
@@ -277,6 +279,8 @@ Accent: #90E0EF (light blue for hover/selection)
 ---
 
 ## PHASE 12: Product Metrics
+
+**Status:** Completed - three product metric cards render with live revenue, volume, and price values.
 
 ### Goal: Add product-specific metric cards
 
@@ -416,5 +420,6 @@ st.markdown(f"""
 - Form control styling falls back to the previous palette; multiselect tag styling retained in styles.py.
 - Timeline product filters now use a consolidated multiselect control on the Revenue Overview timeline page.
 - Form control styling falls back to the previous palette; multiselect tag styling retained in styles.py.
+
 
 
