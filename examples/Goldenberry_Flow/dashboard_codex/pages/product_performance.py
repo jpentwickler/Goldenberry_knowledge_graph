@@ -160,6 +160,42 @@ def _render_combination_chart(df: pd.DataFrame, product: str) -> None:
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
+def _render_market_share(total_revenue: float, selected_metrics: Dict[str, float], display_name: str) -> None:
+    if total_revenue <= 0:
+        st.markdown(
+            "<div class='empty-state'>Total revenue is zero, so market share cannot be determined.</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    selected_revenue = float(selected_metrics.get("TotalRevenue") or 0.0)
+    share = max(min((selected_revenue / total_revenue) * 100 if total_revenue else 0.0, 100.0), 0.0)
+
+    fig = go.Figure(
+        go.Indicator(
+            mode="gauge+number",
+            value=share,
+            number={"suffix": "%", "valueformat": ".1f"},
+            gauge={
+                "axis": {"range": [0, 100]},
+                "bar": {"color": "#1D4ED8"},
+                "steps": [
+                    {"range": [0, 33], "color": "#E4ECFF"},
+                    {"range": [33, 66], "color": "#B4C7FF"},
+                    {"range": [66, 100], "color": "#7B9CFF"},
+                ],
+            },
+            title={"text": f"{html.escape(display_name)} revenue share"},
+        )
+    )
+    fig.update_layout(
+        margin=dict(t=40, b=10, l=30, r=30),
+        paper_bgcolor="#FFFFFF",
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+
 def render() -> None:
     """Render the product performance page with selector and metrics."""
 
@@ -189,6 +225,8 @@ def render() -> None:
             unsafe_allow_html=True,
         )
         return
+
+    total_revenue = sum(float(record.get("TotalRevenue") or 0.0) for record in metrics)
 
     preferred_default = "Goldenberries (Physalis)"
     default_product = (
@@ -246,10 +284,24 @@ def render() -> None:
         _render_combination_chart(performance_df, selected_product)
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+
+    st.markdown(
+        """
+        <div class='section-header'>
+            <h2 class='section-title'>Market Share</h2>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.caption("Share of recorded revenue relative to the full product portfolio.")
+    _render_market_share(total_revenue, selected_metrics, display_name)
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
     st.caption(
-        "Upcoming phases will add margin analysis, combination charts, and portfolio benchmarks to this page."
+        "Phase 15 will focus on margin analysis, benchmarking, and overall polish."
     )
 
 
 if __name__ == "__main__":  # pragma: no cover - standalone Streamlit page
     render()
+

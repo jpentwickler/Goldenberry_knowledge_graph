@@ -315,6 +315,8 @@ Accent: #90E0EF (light blue for hover/selection)
 
 ## PHASE 14: Market Share Gauge
 
+**Status:** Completed - gauge shows each product's share of total portfolio revenue.
+
 ### Goal: Add final visualization
 
 ### Add component:
@@ -422,6 +424,7 @@ st.markdown(f"""
 - Form control styling falls back to the previous palette; multiselect tag styling retained in styles.py.
 - Timeline product filters now use a consolidated multiselect control on the Revenue Overview timeline page.
 - Form control styling falls back to the previous palette; multiselect tag styling retained in styles.py.
+
 
 
 
