@@ -1,4 +1,4 @@
-"""Product performance page with selector-driven metrics."""
+"""Product performance page with selector-driven metrics and charts."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List
 
+import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 if __package__ in (None, ""):
@@ -66,15 +68,29 @@ def _load_product_metrics() -> List[Dict[str, float]]:
         return []
 
 
+def _load_monthly_performance() -> pd.DataFrame:
+    connection = get_connection()
+    try:
+        records = connection.get_product_monthly_performance()
+    except Exception as exc:  # pragma: no cover - runtime fallback
+        st.error(f"Unable to load monthly performance: {exc}")
+        return pd.DataFrame()
+
+    if not records:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(records)
+    df["date"] = pd.to_datetime({"year": df["year"].astype(int), "month": df["month"].astype(int), "day": 1})
+    df["display_name"] = df["product"].map(PRODUCT_LABELS).fillna(df["product"])
+    return df[["product", "display_name", "date", "revenue", "volume"]]
+
+
 def _render_metric_cards(metrics: Dict[str, float]) -> None:
     cards_html: List[str] = ["<div class='metric-grid'>"]
 
     for field_config in METRIC_FIELDS:
         raw_value = metrics.get(field_config.field)
-        if raw_value is None:
-            formatted_value = "--"
-        else:
-            formatted_value = field_config.formatter(raw_value)
+        formatted_value = field_config.formatter(raw_value) if raw_value is not None else "--"
 
         cards_html.append("<div class='metric-card'>")
         cards_html.append(f"<div class='label'>{html.escape(field_config.label)}</div>")
@@ -83,6 +99,65 @@ def _render_metric_cards(metrics: Dict[str, float]) -> None:
 
     cards_html.append("</div>")
     st.markdown("".join(cards_html), unsafe_allow_html=True)
+
+
+def _render_combination_chart(df: pd.DataFrame, product: str) -> None:
+    filtered = df[df["product"] == product].sort_values("date")
+    if filtered.empty:
+        st.markdown(
+            "<div class='empty-state'>No monthly revenue or volume data is available for this product.</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    filtered["month_label"] = filtered["date"].dt.strftime("%b %Y")
+
+    fig = go.Figure()
+    fig.add_bar(
+        x=filtered["month_label"],
+        y=filtered["volume"],
+        name="Volume",
+        marker_color="#90E0EF",
+        yaxis="y1",
+        hovertemplate="<b>%{x}</b><br>Volume: %{y:,.0f} kg<extra></extra>",
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=filtered["month_label"],
+            y=filtered["revenue"],
+            name="Revenue",
+            mode="lines+markers",
+            line=dict(color="#1D4ED8", width=3),
+            marker=dict(size=7, color="#1D4ED8"),
+            yaxis="y2",
+            hovertemplate="<b>%{x}</b><br>Revenue: $%{y:,.0f}<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        margin=dict(t=30, r=40, b=60, l=40),
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        yaxis=dict(
+            title="Volume (kg)",
+            title_font=dict(color="#0F172A"),
+            tickfont=dict(color="#0F172A"),
+            gridcolor="#E2E8F0",
+        ),
+        yaxis2=dict(
+            title="Revenue (USD)",
+            title_font=dict(color="#1D4ED8"),
+            tickfont=dict(color="#1D4ED8"),
+            overlaying="y",
+            side="right",
+            gridcolor="rgba(0,0,0,0)",
+        ),
+        xaxis=dict(showgrid=True, gridcolor="#E2E8F0"),
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
 def render() -> None:
@@ -149,6 +224,26 @@ def render() -> None:
     st.caption("Metrics refresh immediately when you switch products.")
 
     _render_metric_cards(selected_metrics)
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+
+    performance_df = _load_monthly_performance()
+    st.markdown(
+        """
+        <div class='section-header'>
+            <h2 class='section-title'>Revenue & Volume Trend</h2>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.caption("Dual-axis view comparing monthly revenue and shipment volume for the selected product.")
+    if performance_df.empty:
+        st.markdown(
+            "<div class='empty-state'>Combined revenue and volume data is not available yet.</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        _render_combination_chart(performance_df, selected_product)
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
     st.caption(

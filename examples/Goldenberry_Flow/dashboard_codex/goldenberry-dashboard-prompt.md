@@ -297,6 +297,8 @@ Accent: #90E0EF (light blue for hover/selection)
 
 ## PHASE 13: Combination Chart
 
+**Status:** Completed - dual-axis revenue & volume chart tied to the product selector.
+
 ### Goal: Add volume and revenue chart
 
 ### Add component:
@@ -420,6 +422,7 @@ st.markdown(f"""
 - Form control styling falls back to the previous palette; multiselect tag styling retained in styles.py.
 - Timeline product filters now use a consolidated multiselect control on the Revenue Overview timeline page.
 - Form control styling falls back to the previous palette; multiselect tag styling retained in styles.py.
+
 
 
 

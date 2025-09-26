@@ -147,6 +147,39 @@ class Neo4jConnection:
                 }
             )
         return processed
+    def get_product_monthly_performance(self) -> List[Dict[str, Any]]:
+        """Return monthly revenue and volume for each product."""
+
+        query = """
+        MATCH (p:Product)
+        MATCH (pd:PriceData)-[:PRICE_FOR_PRODUCT]->(p)
+        MATCH (vd:VolumeData)-[:VOLUME_FOR_PRODUCT]->(p)
+        MATCH (pd)-[:PRICED_IN_PERIOD]->(tp:TimePeriod)
+        MATCH (vd)-[:OCCURS_IN_PERIOD]->(tp2:TimePeriod)
+        WHERE tp.id = tp2.id
+        WITH p.name AS Product,
+             tp.year AS Year,
+             tp.month AS Month,
+             SUM(pd.price * vd.volume) AS MonthlyRevenue,
+             SUM(vd.volume) AS MonthlyVolume
+        RETURN Product, Year, Month, MonthlyRevenue, MonthlyVolume
+        ORDER BY Year, Month, Product
+        """
+        result = self.execute_query(query)
+
+        records: List[Dict[str, Any]] = []
+        for row in result:
+            records.append(
+                {
+                    "product": row["Product"],
+                    "year": int(row["Year"]),
+                    "month": int(row["Month"]),
+                    "revenue": float(row["MonthlyRevenue"] or 0.0),
+                    "volume": float(row["MonthlyVolume"] or 0.0),
+                }
+            )
+
+        return records
     def get_revenue_timeseries(self) -> List[Dict[str, Any]]:
         """Return monthly revenue per product."""
 
@@ -276,3 +309,4 @@ def _parse_quarter_value(raw) -> int:
         return int(raw)
     except (TypeError, ValueError):
         return 0
+
