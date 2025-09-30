@@ -91,8 +91,8 @@ This document outlines competency questions that an AI agent can answer when int
 19. **What is the pricing model for each product in the revenue streams?**
     - Expected: Fixed kg-based pricing - Goldenberries: $7.00/kg, Pitahaya: $6.63/kg, Exotic Fruits: $5.00/kg (no monthly variations)
 
-20. **How many cost categories and individual cost items exist in the business model?**
-    - Expected: 6 major cost categories with 33 individual cost items total
+20. **How many cost categories, CostStructure nodes, and CostData nodes exist?**
+    - Expected: 6 cost categories with time-series data, 33 CostStructure nodes (framework), 99 CostData nodes (actual costs)
 
 21. **What are the main cost categories in the business model?**
     - Expected: Direct Product Costs, Export Operations Overhead, Digital Trust Infrastructure, Trust Administration & Governance, Financial Operations, Risk Management & Contingency
@@ -101,15 +101,15 @@ This document outlines competency questions that an AI agent can answer when int
 22. **What are the revenue stream types and frequencies?**
     - Expected: All revenue streams are asset sale type with per-kg frequency and fixed pricing
 
-23. **How are costs classified by type (fixed, variable, mixed)?**
-    - Expected: 13 fixed costs, 17 variable costs, 3 mixed cost categories
+23. **How are costs classified by behavior type with actual amounts?**
+    - Expected: 60 fixed CostData nodes ($132,580), 39 variable CostData nodes ($1,965,411), 0 mixed in current implementation
 
 ### Time-Series Revenue Analysis
 24. **What fiscal year does the revenue data cover in the knowledge graph?**
-    - Expected: Fiscal Year 2025 (September 2024 - August 2025)
+    - Expected: Fiscal Year 2025 (September 2024 - September 2025)
 
-25. **How many monthly TimePeriod nodes exist in the graph and what do they represent?**
-    - Expected: 12 TimePeriod nodes covering monthly periods with detailed temporal properties
+25. **How many TimePeriod nodes exist and what data types do they connect?**
+    - Expected: 13 TimePeriod nodes (Sep 2024 - Sep 2025) connecting both revenue data (VolumeData, PriceData) and cost data (CostData)
 
 26. **What are the monthly volume patterns for each product throughout the fiscal year?**
     - Expected: Goldenberries scaling from 0 kg to 24,695.95 kg peak; Pitahaya steady growth from 2,250.09 kg to 22,500 kg; Exotic Fruits seasonal pattern 0-3,000 kg
@@ -147,20 +147,20 @@ This document outlines competency questions that an AI agent can answer when int
 ## Category 5: Resource Dependencies & Operations
 
 ### Resource Requirements
-23. **What key resources does each value proposition require?**
+36. **What key resources does each value proposition require?**
     - Expected: Digital Trust Platform requires blockchain infrastructure, legal framework, financial reserves, specialized team; Export Operations requires infrastructure and team
 
-24. **Which activities are critical for delivering the digital trust investment platform?**
+37. **Which activities are critical for delivering the digital trust investment platform?**
     - Expected: Digital Trust Asset Management, Investor Services & Transparency, Financial Operations & Compliance, Trust Operations Administration
 
-25. **How do key activities utilize different key resources?**
+38. **How do key activities utilize different key resources?**
     - Expected: Detailed mapping of activity-resource dependencies
 
 ### Resource Type Analysis
-26. **What type of resources (physical, intellectual, human, financial) are most critical?**
+39. **What type of resources (physical, intellectual, human, financial) are most critical?**
     - Expected: Analysis showing intellectual resources (platform, legal framework) and human resources as most critical
 
-27. **Which resources enable the export operations infrastructure?**
+40. **Which resources enable the export operations infrastructure?**
     - Expected: Local operating partners enable physical export infrastructure
 
 ---
@@ -168,20 +168,20 @@ This document outlines competency questions that an AI agent can answer when int
 ## Category 6: Partnership Strategy & Ecosystem
 
 ### Partnership Value Analysis
-28. **What are the key partnerships?**
+41. **What are the key partnerships?**
     - Expected: Primary Operational Partner, Financial & Trust Infrastructure Partners, Technology & Platform Partners, Regulatory & Compliance Partners, Market & Customer Partners
 
-29. **How do partnerships enable key resources and support key activities?**
+42. **How do partnerships enable key resources and support key activities?**
     - Expected: Partnership-resource and partnership-activity relationship mappings
 
-30. **How many strategic partnerships exist in the business model?**
+43. **How many strategic partnerships exist in the business model?**
     - Expected: 5 strategic partnerships across different categories
 
 ### Strategic Partnership Questions
-31. **Which partnership enables primary operations?**
+44. **Which partnership enables primary operations?**
     - Expected: Primary Operational Partner for Colombian fruit operations and export infrastructure
 
-32. **How does the Estonian legal framework partnership support regulatory compliance?**
+45. **How does the Estonian legal framework partnership support regulatory compliance?**
     - Expected: Enables EU-compliant legal structure and supports regulatory compliance activities
 
 ---
@@ -189,20 +189,20 @@ This document outlines competency questions that an AI agent can answer when int
 ## Category 7: Cost Attribution & Efficiency
 
 ### Cost Driver Analysis
-33. **Which resources, activities, or channels have cost attribution relationships?**
+46. **Which resources, activities, or channels have cost attribution relationships?**
     - Expected: 6 Key Resources, 13 Key Activities, and 7 Channels have INCURS_COST relationships
 
-34. **What are the specific cost drivers for each major expense category?**
+47. **What are the specific cost drivers for each major expense category?**
     - Expected: Detailed cost driver descriptions for each cost relationship
 
-35. **What are the blockchain and digital infrastructure cost drivers?**
+48. **What are the blockchain and digital infrastructure cost drivers?**
     - Expected: Platform complexity, smart contract deployment, transaction processing, AI integration, cybersecurity requirements
 
 ### Operational Cost Questions
-36. **What personnel-related cost structures exist?**
+49. **What personnel-related cost structures exist?**
     - Expected: Export Operations Personnel, Trust Operations Administrator (with specific cost drivers for team size, expertise, and operational scope)
 
-37. **Which marketing channels incur the highest acquisition costs?**
+50. **Which marketing channels incur the highest acquisition costs?**
     - Expected: Comparison of LinkedIn campaigns, conferences, and trade shows
 
 ---
@@ -210,20 +210,20 @@ This document outlines competency questions that an AI agent can answer when int
 ## Category 8: Strategic Business Insights
 
 ### Competitive Analysis
-38. **What makes this a dual-segment business model architecture?**
+51. **What makes this a dual-segment business model architecture?**
     - Expected: Analysis of serving both investors and importers with different value propositions
 
-39. **How does blockchain technology create competitive advantage?**
+52. **How does blockchain technology create competitive advantage?**
     - Expected: Smart contract automation, transparency, trust, and compliance advantages
 
-40. **What role does the Estonian regulatory framework play in the business model?**
+53. **What role does the Estonian regulatory framework play in the business model?**
     - Expected: EU market access, regulatory compliance, fiduciary protection benefits
 
 ### Scalability Questions
-41. **How does the containerized export model support scalability?**
+54. **How does the containerized export model support scalability?**
     - Expected: Container-based operations allow volume scaling and standardized logistics
 
-42. **What are the key differentiators from traditional export businesses?**
+55. **What are the key differentiators from traditional export businesses?**
     - Expected: Digital trust integration, blockchain governance, investor participation model
 
 ---
@@ -231,20 +231,20 @@ This document outlines competency questions that an AI agent can answer when int
 ## Category 9: Risk & Compliance Analysis
 
 ### Risk Mitigation
-43. **What regulatory compliance activities are required for this business model?**
+56. **What regulatory compliance activities are required for this business model?**
     - Expected: Estonian framework compliance, blockchain regulations, international trade requirements
 
-44. **How does the digital trust framework mitigate investment risks?**
+57. **How does the digital trust framework mitigate investment risks?**
     - Expected: Smart contracts, automated compliance, real-time transparency, fiduciary protection
 
-45. **What quality assurance mechanisms protect importer relationships?**
+58. **What quality assurance mechanisms protect importer relationships?**
     - Expected: Quality control facilities, certification processes, dedicated account management
 
 ### Compliance Framework
-46. **Which partnerships reduce operational and regulatory risks?**
+59. **Which partnerships reduce operational and regulatory risks?**
     - Expected: Estonian legal partners for compliance, local partners for operational risk reduction
 
-47. **How does the legal structure provide fiduciary protection?**
+60. **How does the legal structure provide fiduciary protection?**
     - Expected: Estonian legal framework with trust structure and regulatory oversight
 
 ---
@@ -252,21 +252,139 @@ This document outlines competency questions that an AI agent can answer when int
 ## Category 10: Network Analysis & Relationships
 
 ### Graph Structure Analysis
-48. **What is the complete network structure connecting business model components?**
-    - Expected: Full business model network from BusinessModel through all relationships to end nodes
+61. **What is the complete network structure connecting business model components?**
+    - Expected: Full business model network including 99 CostData nodes, 13 TimePeriod nodes, 437+ total relationships spanning business model components, revenue time-series, and cost time-series
 
-49. **Which nodes have the most relationship connections in the graph?**
-    - Expected: Analysis of node centrality and connection density
+62. **Which nodes have the most relationship connections in the graph?**
+    - Expected: Analysis of node centrality and connection density - TimePeriod nodes now central with connections to both revenue and cost data
 
-50. **How are costs attributed throughout the business model network?**
-    - Expected: Complete cost attribution network from sources to cost structures
+63. **How are costs attributed throughout the business model network?**
+    - Expected: Complete cost attribution network from sources (KeyResource, KeyActivity, Channel) through CostStructure to CostData nodes with time-series detail
 
 ### Relationship Pattern Analysis
-51. **What is the relationship density between different node types?**
-    - Expected: Statistical analysis of relationship patterns across node types
+64. **What is the relationship density between different node types?**
+    - Expected: Statistical analysis of relationship patterns across node types, including 237 cost-related relationships
 
-52. **Which components are most central to the business model's operation?**
-    - Expected: Centrality analysis identifying critical components like specialized team, digital platform
+65. **Which components are most central to the business model's operation?**
+    - Expected: Centrality analysis identifying critical components like specialized team, digital platform, and TimePeriod nodes as temporal integration points
+
+---
+
+## Category 11: Cost Analysis & Time-Series Data
+
+### Basic Cost Data Questions
+66. **How many CostData nodes exist and what is the total cost amount?**
+    - Expected: 99 CostData nodes, $2,097,991 total
+
+67. **How are costs classified by behavior type (fixed vs variable)?**
+    - Expected: 60 fixed cost nodes ($132,580), 39 variable cost nodes ($1,965,411)
+
+68. **What fiscal period do the cost data cover?**
+    - Expected: 13 months from September 2024 to September 2025
+
+69. **How many TimePeriod nodes exist and what do they represent?**
+    - Expected: 13 TimePeriod nodes with shared coverage across both revenue and cost data
+
+70. **What new relationship type was introduced for cost-product attribution?**
+    - Expected: COST_FOR_PRODUCT relationship (39 instances linking variable costs to products)
+
+71. **How many total cost-related relationships exist in the database?**
+    - Expected: 237 relationships (99 COST_FOR_STRUCTURE + 99 INCURRED_IN_PERIOD + 39 COST_FOR_PRODUCT)
+
+72. **What cost categories have actual time-series data loaded?**
+    - Expected: 6 categories - Personnel, Setup & Branding, Product Packaging, Certifications, Trade Shows, Product Procurement
+
+73. **Which CostStructure nodes have CostData attribution?**
+    - Expected: 6 of 33 CostStructure nodes (cs_export_personnel, cs_setup_costs, cs_container_packaging, cs_certifications_compliance, cs_market_development, cs_fruit_procurement)
+
+### Personnel Cost Analysis
+74. **What are the monthly personnel costs and categories?**
+    - Expected: $3,600/month across 4 categories (Manager $850, Export Commercial $1,500, Accounting $700, Assistant $550)
+
+75. **How many personnel cost nodes exist and what is their total?**
+    - Expected: 52 nodes (4 categories × 13 months), $46,800 total
+
+76. **What is the personnel cost coverage across the fiscal year?**
+    - Expected: Complete 13-month coverage with consistent $3,600/month
+
+77. **Which CostStructure receives all personnel cost attribution?**
+    - Expected: cs_export_personnel receives all 52 personnel CostData nodes
+
+### One-Time Event Cost Analysis
+78. **What one-time events are recorded in the cost data?**
+    - Expected: 8 events - 4 setup costs (Sep 2024), 4 trade shows (Sep 2024, Nov 2024, May 2025)
+
+79. **What is the total one-time event cost and how is it distributed?**
+    - Expected: $85,780 total - Sep 2024 spike ($49,080), Nov 2024 ($19,300), May 2025 ($17,400)
+
+80. **Which trade shows are represented in the cost data with their costs?**
+    - Expected: GPF USA ($8,280), Fruit Attraction ($15,800), Fruit Logistica Berlin ($19,300), Fruit Logistica Asia ($17,400)
+
+81. **What setup costs were incurred at business launch?**
+    - Expected: GSS Rebranding ($3,500), Packaging Materials ($10,000), Certifications ($10,000), Commercial Expense ($1,500)
+
+82. **Which months show one-time event cost spikes?**
+    - Expected: September 2024 (6 events, $49,080), November 2024 (1 event, $19,300), May 2025 (1 event, $17,400)
+
+### Variable Product Procurement Analysis
+83. **How many variable cost nodes exist per product and what are the totals?**
+    - Expected: 13 nodes per product - Pitahaya ($988,069), Goldenberries ($912,092), Exotic Fruits ($65,250)
+
+84. **Which product has the highest variable procurement costs?**
+    - Expected: Pitahaya with $988,069 (50.3% of variable costs)
+
+85. **How many COST_FOR_PRODUCT relationships exist per product?**
+    - Expected: 13 relationships per product (39 total across 3 products)
+
+86. **What is the monthly trend for variable procurement costs?**
+    - Expected: Increasing trend from $12,668 (Sep 2024) to $292,796 (Sep 2025)
+
+87. **How are variable costs different from fixed costs in terms of relationships?**
+    - Expected: Variable costs have 3 relationships per node (vs 2 for fixed), adding COST_FOR_PRODUCT
+
+88. **Which months have zero variable costs for specific products?**
+    - Expected: Goldenberries $0 (Sep 2024), Exotic Fruits $0 (Sep-Oct 2024)
+
+89. **What is the product-level cost distribution for variable costs?**
+    - Expected: Pitahaya 50.3%, Goldenberries 46.4%, Exotic Fruits 3.3%
+
+### Cost-Revenue Integration Analysis
+90. **How do TimePeriod nodes integrate cost and revenue data?**
+    - Expected: Same 13 TimePeriod nodes connect to both CostData (via INCURRED_IN_PERIOD) and VolumeData/PriceData (via OCCURS_IN_PERIOD/PRICED_IN_PERIOD)
+
+91. **What is the monthly profit/loss for each period?**
+    - Expected: Revenue minus costs per month - Sep 2024 shows loss due to setup spike, profitable from Oct onwards
+
+92. **Which month shows the highest cost-to-revenue ratio?**
+    - Expected: September 2024 due to $49,080 one-time setup spike
+
+93. **What is the total annual profit (revenue minus costs)?**
+    - Expected: $2,269,183.63 (revenue) - $2,097,991 (costs) = $171,192.63 annual profit
+
+94. **When does the business reach break-even on cumulative basis?**
+    - Expected: December 2024 (after recovering from September setup costs)
+
+95. **How do variable costs correlate with revenue volume trends?**
+    - Expected: Variable costs increase with volume - both show growth from Sep 2024 to Sep 2025
+
+### Product-Level Profitability Analysis
+96. **What is the gross profit per product (revenue minus variable costs)?**
+    - Expected: Pitahaya: $1,163,570 - $988,069 = $175,501; Goldenberries: $1,033,114 - $912,092 = $121,022; Exotic Fruits: $72,500 - $65,250 = $7,250
+
+97. **Which product has the highest gross profit margin?**
+    - Expected: Pitahaya with 15.1% margin, Goldenberries 11.7%, Exotic Fruits 10.0%
+
+98. **How are fixed costs allocated vs variable costs attributed to products?**
+    - Expected: Fixed costs ($132,580) shared across all products, variable costs ($1,965,411) directly attributed via COST_FOR_PRODUCT
+
+99. **What is the contribution margin per kg for each product?**
+    - Expected: Price/kg minus variable cost/kg for each product
+
+100. **Which product generates the best return on variable cost investment?**
+     - Expected: Analysis of revenue/variable cost ratio per product
+
+101. **How do product-level costs evolve month-over-month?**
+     - Expected: Trend analysis showing Pitahaya and Goldenberries scaling, Exotic Fruits steady
 
 ---
 
@@ -295,4 +413,36 @@ This document outlines competency questions that an AI agent can answer when int
 - Identify optimization opportunities in cost and resource allocation
 - Assess strategic partnership value and dependencies
 
-This competency question framework enables AI agents to provide comprehensive business intelligence and strategic insights from the Goldenberry Flow knowledge graph, supporting decision-making across operations, strategy, finance, and risk management domains.
+---
+
+## Summary Statistics
+
+**Total Competency Questions**: 101 (updated from 52)
+**New Questions Added**: 36 (Category 11: Cost Analysis & Time-Series Data)
+**Updated Questions**: 4 (Questions 20, 23, 25, 61)
+**Categories**: 11 (added Category 11)
+
+### Question Distribution by Category
+- Category 1: Business Model Structure & Validation - 7 questions
+- Category 2: Customer Analysis & JTBD Integration - 12 questions
+- Category 3: Channel Strategy & Customer Relationships - 10 questions
+- Category 4: Revenue & Financial Analysis - 18 questions
+- Category 5: Resource Dependencies & Operations - 5 questions
+- Category 6: Partnership Strategy & Ecosystem - 5 questions
+- Category 7: Cost Attribution & Efficiency - 5 questions
+- Category 8: Strategic Business Insights - 5 questions
+- Category 9: Risk & Compliance Analysis - 5 questions
+- Category 10: Network Analysis & Relationships - 5 questions
+- Category 11: Cost Analysis & Time-Series Data - 36 questions (NEW)
+
+### Key Capabilities Demonstrated
+- Complete business model canvas analysis with JTBD integration
+- Revenue time-series analysis with fixed pricing validation
+- **Cost time-series analysis with fixed/variable classification (NEW)**
+- **Product-level profitability analysis (NEW)**
+- **Cost-revenue integration and break-even analysis (NEW)**
+- **Monthly financial performance tracking (NEW)**
+- Strategic partnership and resource dependency mapping
+- Network analysis across 437+ relationships
+
+This competency question framework enables AI agents to provide comprehensive business intelligence and strategic insights from the Goldenberry Flow knowledge graph, supporting decision-making across operations, strategy, finance, risk management, and profitability analysis domains.

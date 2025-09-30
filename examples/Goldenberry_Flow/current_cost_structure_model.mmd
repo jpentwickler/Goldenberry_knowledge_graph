@@ -1,0 +1,141 @@
+graph TD
+%% Current Cost Structure Model - Goldenberry Flow
+%% Generated from Neo4j Knowledge Graph
+%% 33 Cost Structures organized by 6 Categories
+
+%% Business Model (Central Node)
+BM["BusinessModel<br/>Goldenberry Flow<br/>---<br/>id: bm_goldenberry_flow"]
+
+%% Digital Trust Infrastructure (7 costs)
+CS1["CostStructure<br/>Platform Development<br/>---<br/>id: cs_platform_development<br/>category: Digital Trust Infrastructure"]
+CS2["CostStructure<br/>Blockchain Infrastructure<br/>---<br/>id: cs_blockchain_infrastructure<br/>category: Digital Trust Infrastructure"]
+CS3["CostStructure<br/>AI System Integration<br/>---<br/>id: cs_ai_system_integration<br/>category: Digital Trust Infrastructure"]
+CS4["CostStructure<br/>Cybersecurity<br/>---<br/>id: cs_cybersecurity<br/>category: Digital Trust Infrastructure"]
+CS5["CostStructure<br/>Transaction Processing<br/>---<br/>id: cs_transaction_processing<br/>category: Digital Trust Infrastructure"]
+CS6["CostStructure<br/>Digital Asset Management<br/>---<br/>id: cs_digital_asset_management<br/>category: Digital Trust Infrastructure"]
+CS7["CostStructure<br/>Computing Resources<br/>---<br/>id: cs_computing_resources<br/>category: Digital Trust Infrastructure"]
+
+%% Direct Product Costs (5 costs)
+CS8["CostStructure<br/>Fruit Procurement<br/>---<br/>id: cs_fruit_procurement<br/>category: Direct Product Costs"]
+CS9["CostStructure<br/>Quality Control & Inspection<br/>---<br/>id: cs_quality_control_inspection<br/>category: Direct Product Costs"]
+CS10["CostStructure<br/>Export Documentation<br/>---<br/>id: cs_export_documentation<br/>category: Direct Product Costs"]
+CS11["CostStructure<br/>Container & Packaging<br/>---<br/>id: cs_container_packaging<br/>category: Direct Product Costs"]
+CS12["CostStructure<br/>International Logistics<br/>---<br/>id: cs_international_logistics<br/>category: Direct Product Costs"]
+
+%% Export Operations Overhead (4 costs)
+CS13["CostStructure<br/>Export Operations Personnel<br/>---<br/>id: cs_export_personnel<br/>category: Export Operations Overhead"]
+CS14["CostStructure<br/>Market Development<br/>---<br/>id: cs_market_development<br/>category: Export Operations Overhead"]
+CS15["CostStructure<br/>Certifications & Compliance<br/>---<br/>id: cs_certifications_compliance<br/>category: Export Operations Overhead"]
+CS16["CostStructure<br/>Setup Costs<br/>---<br/>id: cs_setup_costs<br/>category: Export Operations Overhead"]
+
+%% Financial Operations (4 costs)
+CS17["CostStructure<br/>Banking & Treasury<br/>---<br/>id: cs_banking_treasury<br/>category: Financial Operations"]
+CS18["CostStructure<br/>Currency Management<br/>---<br/>id: cs_currency_management<br/>category: Financial Operations"]
+CS19["CostStructure<br/>Fund Administration<br/>---<br/>id: cs_fund_administration<br/>category: Financial Operations"]
+CS20["CostStructure<br/>Payment Processing<br/>---<br/>id: cs_payment_processing<br/>category: Financial Operations"]
+
+%% Risk Management & Contingency (6 costs)
+CS21["CostStructure<br/>Insurance Premiums<br/>---<br/>id: cs_insurance_premiums<br/>category: Risk Management & Contingency"]
+CS22["CostStructure<br/>Emergency Reserves<br/>---<br/>id: cs_emergency_reserves<br/>category: Risk Management & Contingency"]
+CS23["CostStructure<br/>Compliance Infrastructure<br/>---<br/>id: cs_compliance_infrastructure<br/>category: Risk Management & Contingency"]
+CS24["CostStructure<br/>Operational Buffers<br/>---<br/>id: cs_operational_buffers<br/>category: Risk Management & Contingency"]
+CS25["CostStructure<br/>Default Protection<br/>---<br/>id: cs_default_protection<br/>category: Risk Management & Contingency"]
+CS26["CostStructure<br/>Performance Guarantees<br/>---<br/>id: cs_performance_guarantees<br/>category: Risk Management & Contingency"]
+
+%% Trust Administration & Governance (7 costs)
+CS27["CostStructure<br/>Trust Operations Administrator<br/>---<br/>id: cs_trust_operations_administrator<br/>category: Trust Administration & Governance"]
+CS28["CostStructure<br/>Legal & Regulatory<br/>---<br/>id: cs_legal_regulatory<br/>category: Trust Administration & Governance"]
+CS29["CostStructure<br/>Professional Insurance<br/>---<br/>id: cs_professional_insurance<br/>category: Trust Administration & Governance"]
+CS30["CostStructure<br/>Entity Operations<br/>---<br/>id: cs_entity_operations<br/>category: Trust Administration & Governance"]
+CS31["CostStructure<br/>Investor Services<br/>---<br/>id: cs_investor_services<br/>category: Trust Administration & Governance"]
+CS32["CostStructure<br/>Distribution Management<br/>---<br/>id: cs_distribution_management<br/>category: Trust Administration & Governance"]
+CS33["CostStructure<br/>Audit & Reporting<br/>---<br/>id: cs_audit_reporting<br/>category: Trust Administration & Governance"]
+
+%% Key Resources that incur costs
+KR1["KeyResource<br/>Financial Resources<br/>---<br/>id: kr_financial_resources"]
+KR2["KeyResource<br/>Human Resources<br/>---<br/>id: kr_human_resources"]
+
+%% Key Activities that incur costs
+KA1["KeyActivity<br/>Digital Trust Asset Management<br/>---<br/>id: ka_digital_trust_asset_management"]
+KA2["KeyActivity<br/>Financial Operations & Compliance<br/>---<br/>id: ka_financial_operations_compliance"]
+KA3["KeyActivity<br/>Investor Services & Transparency<br/>---<br/>id: ka_investor_services_transparency"]
+KA4["KeyActivity<br/>Trust Operations Administration<br/>---<br/>id: ka_trust_operations_administration"]
+KA5["KeyActivity<br/>Customer Relationship & Order Management<br/>---<br/>id: ka_customer_relationship_order_management"]
+KA6["KeyActivity<br/>Partnership Coordination<br/>---<br/>id: ka_partnership_coordination"]
+
+%% Channels that incur costs
+CH1["Channel<br/>Container Shipping<br/>---<br/>id: ch_importer_container_shipping"]
+CH2["Channel<br/>Digital Marketing<br/>---<br/>id: ch_investor_digital_marketing"]
+CH3["Channel<br/>Industry Events<br/>---<br/>id: ch_investor_industry_events"]
+CH4["Channel<br/>Trade Show Participation<br/>---<br/>id: ch_importer_trade_shows"]
+CH5["Channel<br/>Industry Publications<br/>---<br/>id: ch_importer_industry_publications"]
+CH6["Channel<br/>Regulatory Compliance Showcases<br/>---<br/>id: ch_investor_regulatory_showcases"]
+
+%% INCURS_COST Relationships - Resources to Costs
+KR1 -->|INCURS_COST| CS17
+KR1 -->|INCURS_COST| CS18
+KR1 -->|INCURS_COST| CS19
+KR1 -->|INCURS_COST| CS20
+KR2 -->|INCURS_COST| CS13
+KR2 -->|INCURS_COST| CS27
+
+%% INCURS_COST Relationships - Activities to Costs
+KA1 -->|INCURS_COST| CS5
+KA1 -->|INCURS_COST| CS6
+KA1 -->|INCURS_COST| CS7
+KA2 -->|INCURS_COST| CS32
+KA2 -->|INCURS_COST| CS23
+KA3 -->|INCURS_COST| CS31
+KA3 -->|INCURS_COST| CS33
+KA4 -->|INCURS_COST| CS29
+KA4 -->|INCURS_COST| CS22
+KA4 -->|INCURS_COST| CS26
+KA5 -->|INCURS_COST| CS14
+KA6 -->|INCURS_COST| CS10
+KA6 -->|INCURS_COST| CS11
+
+%% INCURS_COST Relationships - Channels to Costs
+CH1 -->|INCURS_COST| CS24
+CH1 -->|INCURS_COST| CS25
+CH2 -->|INCURS_COST| CS14
+CH3 -->|INCURS_COST| CS14
+CH4 -->|INCURS_COST| CS14
+CH5 -->|INCURS_COST| CS14
+CH6 -->|INCURS_COST| CS14
+
+%% Styling
+classDef businessModel fill:#1a1a1a,stroke:#333,stroke-width:4px,color:#fff,font-size:14px,font-weight:bold
+classDef digitalInfra fill:#e3f2fd,stroke:#0077B6,stroke-width:2px,color:#000,font-size:11px
+classDef directProduct fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000,font-size:11px
+classDef exportOps fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000,font-size:11px
+classDef financial fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000,font-size:11px
+classDef risk fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#000,font-size:11px
+classDef governance fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000,font-size:11px
+classDef resource fill:#e0f2f1,stroke:#00796b,stroke-width:2px,color:#000,font-size:11px
+classDef activity fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000,font-size:11px
+classDef channel fill:#fbe9e7,stroke:#d84315,stroke-width:2px,color:#000,font-size:11px
+
+class BM businessModel
+class CS1,CS2,CS3,CS4,CS5,CS6,CS7 digitalInfra
+class CS8,CS9,CS10,CS11,CS12 directProduct
+class CS13,CS14,CS15,CS16 exportOps
+class CS17,CS18,CS19,CS20 financial
+class CS21,CS22,CS23,CS24,CS25,CS26 risk
+class CS27,CS28,CS29,CS30,CS31,CS32,CS33 governance
+class KR1,KR2 resource
+class KA1,KA2,KA3,KA4,KA5,KA6 activity
+class CH1,CH2,CH3,CH4,CH5,CH6 channel
+
+%% Legend
+subgraph Legend["Cost Structure Model Legend"]
+    L1["Business Model"]:::businessModel
+    L2["Digital Trust Infrastructure (7)"]:::digitalInfra
+    L3["Direct Product Costs (5)"]:::directProduct
+    L4["Export Operations Overhead (4)"]:::exportOps
+    L5["Financial Operations (4)"]:::financial
+    L6["Risk Management (6)"]:::risk
+    L7["Governance (7)"]:::governance
+    L8["Key Resource"]:::resource
+    L9["Key Activity"]:::activity
+    L10["Channel"]:::channel
+end

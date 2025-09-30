@@ -322,3 +322,322 @@ RETURN "Revenue Integrity" as ValidationCategory,
          ELSE "❌ REVENUE CALCULATION ERROR"
        END as Status
 ORDER BY CalculatedRevenue DESC;
+
+// =====================================================
+// COST DATA VALIDATION QUERIES
+// Added: 2025-09-30
+// Source: complete_cost_data_integration.cypher
+// =====================================================
+// These queries validate the cost data integration
+// from Cash_Flow_Model_v2.xlsx
+// Run after executing cost data integration phases
+// =====================================================
+
+// Query 27: Verify CostData schema objects (Phase 1)
+// Validates that constraints and indexes were created
+// Expected: cost_data_id constraint, cost_data_period index
+SHOW CONSTRAINTS WHERE name CONTAINS 'cost_data'
+YIELD name, type
+WITH collect({name: name, type: type}) as constraints
+CALL {
+  SHOW INDEXES WHERE name CONTAINS 'cost_data'
+  YIELD name, type
+  RETURN collect({name: name, type: type}) as indexes
+}
+RETURN "💾 COST DATA SCHEMA VALIDATION" as Check,
+       constraints as Constraints,
+       indexes as Indexes,
+       CASE
+         WHEN size(constraints) >= 1 AND size(indexes) >= 1
+         THEN "✅ Phase 1 Complete: Schema objects created"
+         ELSE "❌ ERROR: Schema objects missing"
+       END as Phase1Status;
+
+// Query 28: Verify CostData node count (Phases 2-4)
+// Validates progressive data loading across phases
+// Phase 1: 0 nodes (schema only)
+// Phase 2: 52 nodes (personnel costs)
+// Phase 3: 60 nodes (+ one-time events)
+// Phase 4: 99 nodes (+ variable product costs)
+MATCH (cd:CostData)
+WITH count(cd) as ActualNodes,
+     CASE
+       WHEN count(cd) = 0 THEN "Phase 1: Schema only ✅"
+       WHEN count(cd) = 52 THEN "Phase 2: Personnel costs ✅"
+       WHEN count(cd) = 60 THEN "Phase 3: + One-time events ✅"
+       WHEN count(cd) = 99 THEN "Phase 4: Complete ✅"
+       ELSE "⚠️ Unexpected node count"
+     END as PhaseStatus
+RETURN "📊 COST DATA NODE COUNT" as Check,
+       ActualNodes as CostDataNodes,
+       "Target: 99 (after Phase 4)" as FinalTarget,
+       PhaseStatus as CurrentPhase;
+
+// Query 29: Detailed Personnel Cost Validation (Phase 2)
+// Validates all personnel cost data in detail
+// Expected: 52 nodes, 4 categories, $46,800 total, 104 relationships
+// Part A: Node count by category
+MATCH (cd:CostData)
+WHERE cd.category STARTS WITH 'Personnel'
+WITH cd.category as Category,
+     count(cd) as NodeCount,
+     SUM(cd.amount) as CategoryTotal
+RETURN "📊 PERSONNEL COST BY CATEGORY" as Check,
+       collect({
+         category: Category,
+         nodes: NodeCount,
+         total: CategoryTotal,
+         expected_nodes: 13,
+         expected_total: CASE Category
+           WHEN 'Personnel - Management' THEN 11050.0
+           WHEN 'Personnel - Commercial' THEN 19500.0
+           WHEN 'Personnel - Accounting' THEN 9100.0
+           WHEN 'Personnel - Administrative' THEN 7150.0
+           ELSE 0.0
+         END,
+         status: CASE
+           WHEN NodeCount = 13 AND CategoryTotal = CASE Category
+             WHEN 'Personnel - Management' THEN 11050.0
+             WHEN 'Personnel - Commercial' THEN 19500.0
+             WHEN 'Personnel - Accounting' THEN 9100.0
+             WHEN 'Personnel - Administrative' THEN 7150.0
+             ELSE 0.0
+           END THEN '✅'
+           ELSE '❌'
+         END
+       }) as ByCategory;
+
+// Query 29 Part B: Monthly distribution
+MATCH (cd:CostData)-[:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+WHERE cd.category STARTS WITH 'Personnel'
+WITH tp.year as Year, tp.month as Month, tp.id as PeriodID,
+     count(cd) as NodesPerMonth,
+     SUM(cd.amount) as MonthlyTotal
+RETURN "📅 MONTHLY PERSONNEL COSTS" as Check,
+       PeriodID,
+       NodesPerMonth as Nodes,
+       MonthlyTotal as Total,
+       CASE
+         WHEN NodesPerMonth = 4 AND MonthlyTotal = 3600.0
+         THEN "✅ Correct"
+         ELSE "❌ Expected 4 nodes, $3,600"
+       END as Status
+ORDER BY Year, Month;
+
+// Query 29 Part C: Relationship verification
+MATCH (cd:CostData)-[r1:COST_FOR_STRUCTURE]->(cs:CostStructure)
+WHERE cd.category STARTS WITH 'Personnel'
+WITH count(r1) as CostForStructureCount
+MATCH (cd:CostData)-[r2:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+WHERE cd.category STARTS WITH 'Personnel'
+RETURN "🔗 PERSONNEL RELATIONSHIPS" as Check,
+       CostForStructureCount,
+       count(r2) as IncurredInPeriodCount,
+       CASE
+         WHEN CostForStructureCount = 52 AND count(r2) = 52
+         THEN "✅ All relationships correct"
+         ELSE "❌ Expected 52 of each type"
+       END as Status;
+
+// Query 29 Part D: Total validation
+MATCH (cd:CostData)
+WHERE cd.category STARTS WITH 'Personnel'
+RETURN "💰 TOTAL PERSONNEL COSTS" as Check,
+       count(cd) as TotalNodes,
+       SUM(cd.amount) as TotalAmount,
+       CASE
+         WHEN count(cd) = 52 AND SUM(cd.amount) = 46800.0
+         THEN "✅ Phase 2 Complete"
+         ELSE "❌ Expected 52 nodes, $46,800"
+       END as ValidationStatus;
+
+// ========================================
+// Query 30: Detailed One-Time Events Cost Validation (Phase 3)
+// ========================================
+// Expected: 8 nodes, 5 categories, $85,780 total
+// Validates setup costs, trade shows, and period distribution
+
+// Query 30 Part A: Node count by category
+MATCH (cd:CostData)
+WHERE cd.category IN ['Setup & Branding', 'Product Packaging',
+                      'Certifications & Compliance', 'Marketing & Sales',
+                      'Trade Shows']
+WITH cd.category as Category,
+     count(cd) as NodeCount,
+     SUM(cd.amount) as CategoryTotal
+RETURN "📊 ONE-TIME COSTS BY CATEGORY" as Check,
+       collect({
+         category: Category,
+         nodes: NodeCount,
+         total: CategoryTotal,
+         expected: CASE Category
+           WHEN 'Setup & Branding' THEN {nodes: 1, total: 3500.0}
+           WHEN 'Product Packaging' THEN {nodes: 1, total: 10000.0}
+           WHEN 'Certifications & Compliance' THEN {nodes: 1, total: 10000.0}
+           WHEN 'Marketing & Sales' THEN {nodes: 1, total: 1500.0}
+           WHEN 'Trade Shows' THEN {nodes: 4, total: 60780.0}
+           ELSE {nodes: 0, total: 0.0}
+         END,
+         status: CASE
+           WHEN (Category = 'Setup & Branding' AND NodeCount = 1 AND CategoryTotal = 3500.0)
+             OR (Category = 'Product Packaging' AND NodeCount = 1 AND CategoryTotal = 10000.0)
+             OR (Category = 'Certifications & Compliance' AND NodeCount = 1 AND CategoryTotal = 10000.0)
+             OR (Category = 'Marketing & Sales' AND NodeCount = 1 AND CategoryTotal = 1500.0)
+             OR (Category = 'Trade Shows' AND NodeCount = 4 AND CategoryTotal = 60780.0)
+           THEN '✅' ELSE '❌'
+         END
+       }) as ByCategory;
+
+// Query 30 Part B: Period distribution
+MATCH (cd:CostData)-[:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+WHERE cd.category IN ['Setup & Branding', 'Product Packaging',
+                      'Certifications & Compliance', 'Marketing & Sales',
+                      'Trade Shows']
+WITH tp.id as Period,
+     count(cd) as CostsInPeriod,
+     SUM(cd.amount) as PeriodTotal
+RETURN "📅 ONE-TIME COSTS BY PERIOD" as Check,
+       Period,
+       CostsInPeriod as Nodes,
+       PeriodTotal as Total,
+       CASE
+         WHEN Period = 'tp_2024_09' AND CostsInPeriod = 6 AND PeriodTotal = 49080.0
+           THEN '✅ Sep 2024: 6 setup costs'
+         WHEN Period = 'tp_2024_11' AND CostsInPeriod = 1 AND PeriodTotal = 19300.0
+           THEN '✅ Nov 2024: 1 trade show'
+         WHEN Period = 'tp_2025_05' AND CostsInPeriod = 1 AND PeriodTotal = 17400.0
+           THEN '✅ May 2025: 1 trade show'
+         ELSE '❌ Unexpected values'
+       END as Status
+ORDER BY Period;
+
+// Query 30 Part C: Relationship verification
+MATCH (cd:CostData)-[r1:COST_FOR_STRUCTURE]->(cs:CostStructure)
+WHERE cd.category IN ['Setup & Branding', 'Product Packaging',
+                      'Certifications & Compliance', 'Marketing & Sales',
+                      'Trade Shows']
+WITH count(r1) as CostForStructureCount
+MATCH (cd:CostData)-[r2:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+WHERE cd.category IN ['Setup & Branding', 'Product Packaging',
+                      'Certifications & Compliance', 'Marketing & Sales',
+                      'Trade Shows']
+RETURN "🔗 ONE-TIME EVENT RELATIONSHIPS" as Check,
+       CostForStructureCount,
+       count(r2) as IncurredInPeriodCount,
+       CASE
+         WHEN CostForStructureCount = 8 AND count(r2) = 8
+         THEN "✅ All relationships correct"
+         ELSE "❌ Expected 8 of each type"
+       END as Status;
+
+// Query 30 Part D: Total validation
+MATCH (cd:CostData)
+WHERE cd.category IN ['Setup & Branding', 'Product Packaging',
+                      'Certifications & Compliance', 'Marketing & Sales',
+                      'Trade Shows']
+RETURN "💰 TOTAL ONE-TIME COSTS" as Check,
+       count(cd) as TotalNodes,
+       SUM(cd.amount) as TotalAmount,
+       CASE
+         WHEN count(cd) = 8 AND SUM(cd.amount) = 85780.0
+         THEN "✅ Phase 3 Complete"
+         ELSE "❌ Expected 8 nodes, $85,780"
+       END as Phase3Status;
+
+// ========================================
+// Query 31: Detailed Variable Product Procurement Validation (Phase 4)
+// ========================================
+// Expected: 39 nodes, 3 products, $1,965,411 total
+// Validates variable costs by product and monthly trends
+
+// Query 31 Part A: Node count by product
+MATCH (cd:CostData)-[:COST_FOR_PRODUCT]->(p:Product)
+WITH p.name as Product,
+     count(cd) as NodeCount,
+     SUM(cd.amount) as ProductTotal
+RETURN "📊 VARIABLE COSTS BY PRODUCT" as Check,
+       collect({
+         product: Product,
+         nodes: NodeCount,
+         total: ProductTotal,
+         expected_nodes: 13,
+         expected_total: CASE Product
+           WHEN 'Pitahaya (Dragon Fruit)' THEN 988069.0
+           WHEN 'Goldenberries (Physalis)' THEN 912092.0
+           WHEN 'Exotic Fruits Mix' THEN 65250.0
+           ELSE 0.0
+         END,
+         status: CASE
+           WHEN NodeCount = 13 AND (
+             (Product = 'Pitahaya (Dragon Fruit)' AND ProductTotal = 988069.0) OR
+             (Product = 'Goldenberries (Physalis)' AND ProductTotal = 912092.0) OR
+             (Product = 'Exotic Fruits Mix' AND ProductTotal = 65250.0)
+           )
+           THEN '✅' ELSE '❌'
+         END
+       }) as ByProduct
+ORDER BY ProductTotal DESC;
+
+// Query 31 Part B: Monthly variable cost trend
+MATCH (cd:CostData {costBehavior: 'variable'})-[:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+WITH tp.id as Period,
+     tp.year as Year,
+     tp.month as Month,
+     count(cd) as NodesPerMonth,
+     SUM(cd.amount) as MonthlyTotal
+RETURN "📈 MONTHLY VARIABLE COST TREND" as Check,
+       Period,
+       NodesPerMonth as Nodes,
+       MonthlyTotal as Total,
+       CASE
+         WHEN NodesPerMonth = 3
+         THEN '✅ 3 products per month'
+         ELSE '❌ Expected 3 products'
+       END as Status
+ORDER BY Year, Month
+LIMIT 5;
+
+// Query 31 Part C: COST_FOR_PRODUCT relationship verification
+MATCH (cd:CostData)-[r:COST_FOR_PRODUCT]->(p:Product)
+WITH p.name as Product, count(r) as RelCount
+RETURN "🔗 COST_FOR_PRODUCT RELATIONSHIPS" as Check,
+       collect({
+         product: Product,
+         relationships: RelCount,
+         expected: 13,
+         status: CASE
+           WHEN RelCount = 13 THEN '✅'
+           ELSE '❌'
+         END
+       }) as ProductRelationships;
+
+// Query 31 Part D: Total relationship count
+MATCH (cd:CostData {costBehavior: 'variable'})
+WITH count(cd) as TotalNodes
+MATCH (cd:CostData)-[r1:COST_FOR_STRUCTURE]->(cs:CostStructure {id: 'cs_fruit_procurement'})
+WHERE cd.costBehavior = 'variable'
+WITH TotalNodes, count(r1) as StructureRels
+MATCH (cd:CostData {costBehavior: 'variable'})-[r2:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+WITH TotalNodes, StructureRels, count(r2) as PeriodRels
+MATCH (cd:CostData)-[r3:COST_FOR_PRODUCT]->(p:Product)
+RETURN "🔗 VARIABLE COST RELATIONSHIPS" as Check,
+       TotalNodes as VariableNodes,
+       StructureRels as CostForStructure,
+       PeriodRels as IncurredInPeriod,
+       count(r3) as CostForProduct,
+       CASE
+         WHEN TotalNodes = 39 AND StructureRels = 39 AND PeriodRels = 39 AND count(r3) = 39
+         THEN '✅ All 117 relationships correct (39×3)'
+         ELSE '❌ ERROR: Expected 39 of each type'
+       END as Status;
+
+// Query 31 Part E: Total validation
+MATCH (cd:CostData {costBehavior: 'variable'})
+RETURN "💰 TOTAL VARIABLE COSTS" as Check,
+       count(cd) as TotalNodes,
+       SUM(cd.amount) as TotalAmount,
+       CASE
+         WHEN count(cd) = 39 AND SUM(cd.amount) = 1965411.0
+         THEN "✅ Phase 4 Complete"
+         ELSE "❌ Expected 39 nodes, $1,965,411"
+       END as Phase4Status;

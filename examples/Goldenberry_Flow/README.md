@@ -211,13 +211,23 @@ cat goldenberry_complete_model.cypher | neo4j-shell -c
 ```
 **OR** in Neo4j Browser, copy and paste the entire contents of `goldenberry_complete_model.cypher`
 
-#### Step 4: Load Time-Series Revenue Data
+#### Step 4a: Load Time-Series Revenue Data
 Execute the complete 13-month real data integration:
 ```bash
 # Load all time-series data with real Excel values
 cat complete_12month_real_data.cypher | neo4j-shell -c
 ```
 **OR** in Neo4j Browser, copy and paste the entire contents of `complete_12month_real_data.cypher`
+
+#### Step 4b: Load Cost Data Schema (Phase 1)
+Execute the cost data schema extension:
+```bash
+# Load cost data schema (constraints and indexes)
+cat complete_cost_data_integration.cypher | neo4j-shell -c
+```
+**OR** in Neo4j Browser, copy and paste the entire contents of `complete_cost_data_integration.cypher`
+
+**Note**: Currently only Phase 1 (schema extension) is included. Future phases will add actual cost data.
 
 #### Step 5: Validation Queries
 Run these essential validation checks:
@@ -287,6 +297,256 @@ WITH tp, count(vd) as VolumeCount
 WHERE VolumeCount != 3
 RETURN tp.id as ProblematicTimePeriod, VolumeCount;
 // Expected: No results (each TimePeriod should connect to exactly 3 VolumeData nodes)
+```
+
+**G. Verify Cost Data Schema (Query 27 from validation_queries.cypher):**
+```cypher
+// Verify CostData schema objects were created
+SHOW CONSTRAINTS WHERE name CONTAINS 'cost_data'
+YIELD name, type
+WITH collect({name: name, type: type}) as constraints
+CALL {
+  SHOW INDEXES WHERE name CONTAINS 'cost_data'
+  YIELD name, type
+  RETURN collect({name: name, type: type}) as indexes
+}
+RETURN "💾 COST DATA SCHEMA VALIDATION" as Check,
+       constraints as Constraints,
+       indexes as Indexes,
+       CASE
+         WHEN size(constraints) >= 1 AND size(indexes) >= 1
+         THEN "✅ Phase 1 Complete: Schema objects created"
+         ELSE "❌ ERROR: Schema objects missing"
+       END as Phase1Status;
+// Expected: Phase1Status = "✅ Phase 1 Complete"
+```
+
+**H. Verify Cost Data Node Count (Query 28 from validation_queries.cypher):**
+```cypher
+// Verify progressive cost data loading
+MATCH (cd:CostData)
+WITH count(cd) as ActualNodes,
+     CASE
+       WHEN count(cd) = 0 THEN "Phase 1: Schema only ✅"
+       WHEN count(cd) = 52 THEN "Phase 2: Personnel costs ✅"
+       WHEN count(cd) = 60 THEN "Phase 3: + One-time events ✅"
+       WHEN count(cd) = 99 THEN "Phase 4: Complete ✅"
+       ELSE "⚠️ Unexpected node count"
+     END as PhaseStatus
+RETURN "📊 COST DATA NODE COUNT" as Check,
+       ActualNodes as CostDataNodes,
+       "Target: 99 (after Phase 4)" as FinalTarget,
+       PhaseStatus as CurrentPhase;
+// Expected after Step 4b: CurrentPhase = "Phase 1: Schema only ✅" (0 nodes)
+// Expected after Phase 2: CurrentPhase = "Phase 2: Personnel costs ✅" (52 nodes)
+```
+
+**I. Detailed Personnel Cost Validation (Query 29 from validation_queries.cypher):**
+```cypher
+// Verify Phase 2 personnel costs - Expected: 52 nodes, 4 categories, $46,800 total
+
+// Part A: Node count by category
+MATCH (cd:CostData)
+WHERE cd.category STARTS WITH 'Personnel'
+WITH cd.category as Category,
+     count(cd) as NodeCount,
+     SUM(cd.amount) as CategoryTotal
+RETURN "📊 PERSONNEL COST BY CATEGORY" as Check,
+       collect({
+         category: Category,
+         nodes: NodeCount,
+         total: CategoryTotal,
+         expected_nodes: 13,
+         expected_total: CASE Category
+           WHEN 'Personnel - Management' THEN 11050.0
+           WHEN 'Personnel - Commercial' THEN 19500.0
+           WHEN 'Personnel - Accounting' THEN 9100.0
+           WHEN 'Personnel - Administrative' THEN 7150.0
+           ELSE 0.0
+         END,
+         status: CASE
+           WHEN NodeCount = 13 THEN '✅' ELSE '❌'
+         END
+       }) as ByCategory;
+
+// Part B: Monthly distribution check
+MATCH (cd:CostData)-[:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+WHERE cd.category STARTS WITH 'Personnel'
+WITH tp.id as Period,
+     count(cd) as CostsInMonth,
+     SUM(cd.amount) as MonthlyTotal
+RETURN "📅 MONTHLY DISTRIBUTION" as Check,
+       Period,
+       CostsInMonth as CostNodes,
+       MonthlyTotal as MonthTotal,
+       CASE
+         WHEN CostsInMonth = 4 AND MonthlyTotal = 3600.0
+         THEN '✅' ELSE '❌'
+       END as Status
+ORDER BY Period
+LIMIT 3;
+
+// Part C: Relationship verification
+MATCH (cd:CostData)
+WHERE cd.category STARTS WITH 'Personnel'
+WITH count(cd) as TotalNodes
+MATCH (cd:CostData)-[r1:COST_FOR_STRUCTURE]->(cs:CostStructure {id: 'cs_export_personnel'})
+WHERE cd.category STARTS WITH 'Personnel'
+WITH TotalNodes, count(r1) as StructureRels
+MATCH (cd:CostData)-[r2:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+WHERE cd.category STARTS WITH 'Personnel'
+RETURN "🔗 RELATIONSHIP COUNTS" as Check,
+       TotalNodes as PersonnelNodes,
+       StructureRels as CostForStructure,
+       count(r2) as IncurredInPeriod,
+       CASE
+         WHEN TotalNodes = 52 AND StructureRels = 52 AND count(r2) = 52
+         THEN '✅ All relationships correct'
+         ELSE '❌ ERROR: Missing relationships'
+       END as Status;
+
+// Part D: Total validation
+MATCH (cd:CostData)
+WHERE cd.category STARTS WITH 'Personnel'
+RETURN "💰 PHASE 2 TOTALS" as Check,
+       count(cd) as TotalNodes,
+       SUM(cd.amount) as TotalAmount,
+       CASE
+         WHEN count(cd) = 52 AND SUM(cd.amount) = 46800.0
+         THEN '✅ Phase 2 Complete: 52 nodes, $46,800 total'
+         ELSE '❌ ERROR: Expected 52 nodes and $46,800'
+       END as Phase2Status;
+
+// Expected Results:
+// Part A: 4 categories with 13 nodes each (Management: $11,050, Commercial: $19,500,
+//         Accounting: $9,100, Administrative: $7,150)
+// Part B: Each month has 4 cost nodes totaling $3,600
+// Part C: 52 nodes with 52 COST_FOR_STRUCTURE and 52 INCURRED_IN_PERIOD relationships
+// Part D: 52 total nodes, $46,800 total amount
+```
+
+**J. Detailed One-Time Events Validation (Query 30 from validation_queries.cypher):**
+```cypher
+// Verify Phase 3 one-time event costs - Expected: 8 nodes, 5 categories, $85,780 total
+
+// Part A: Node count by category
+MATCH (cd:CostData)
+WHERE cd.category IN ['Setup & Branding', 'Product Packaging',
+                      'Certifications & Compliance', 'Marketing & Sales',
+                      'Trade Shows']
+WITH cd.category as Category,
+     count(cd) as NodeCount,
+     SUM(cd.amount) as CategoryTotal
+RETURN "📊 ONE-TIME COSTS BY CATEGORY" as Check,
+       collect({
+         category: Category,
+         nodes: NodeCount,
+         total: CategoryTotal,
+         status: CASE
+           WHEN (Category = 'Setup & Branding' AND NodeCount = 1)
+             OR (Category = 'Product Packaging' AND NodeCount = 1)
+             OR (Category = 'Certifications & Compliance' AND NodeCount = 1)
+             OR (Category = 'Marketing & Sales' AND NodeCount = 1)
+             OR (Category = 'Trade Shows' AND NodeCount = 4)
+           THEN '✅' ELSE '❌'
+         END
+       }) as ByCategory;
+
+// Part B: Period distribution
+MATCH (cd:CostData)-[:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+WHERE cd.category IN ['Setup & Branding', 'Product Packaging',
+                      'Certifications & Compliance', 'Marketing & Sales',
+                      'Trade Shows']
+WITH tp.id as Period, count(cd) as Nodes, SUM(cd.amount) as Total
+RETURN Period, Nodes, Total
+ORDER BY Period;
+
+// Part D: Total validation
+MATCH (cd:CostData)
+WHERE cd.category IN ['Setup & Branding', 'Product Packaging',
+                      'Certifications & Compliance', 'Marketing & Sales',
+                      'Trade Shows']
+RETURN count(cd) as TotalNodes, SUM(cd.amount) as TotalAmount;
+
+// Expected Results:
+// Part A: 5 categories (Setup: 1 node, Packaging: 1 node, Certifications: 1 node,
+//         Marketing: 1 node, Trade Shows: 4 nodes)
+// Part B: Sep 2024: 6 nodes ($49,080), Nov 2024: 1 node ($19,300), May 2025: 1 node ($17,400)
+// Part D: 8 total nodes, $85,780 total amount
+```
+
+**K. Detailed Variable Product Procurement Validation (Query 31 from validation_queries.cypher):**
+```cypher
+// Verify Phase 4 variable product procurement costs
+// Expected: 39 nodes, 3 products, $1,965,411 total, 117 relationships
+
+// Part A: Node count by product
+MATCH (cd:CostData)-[:COST_FOR_PRODUCT]->(p:Product)
+WITH p.name as Product,
+     count(cd) as NodeCount,
+     SUM(cd.amount) as ProductTotal
+ORDER BY ProductTotal DESC
+RETURN "📊 VARIABLE COSTS BY PRODUCT" as Check,
+       collect({
+         product: Product,
+         nodes: NodeCount,
+         total: ProductTotal,
+         expected_nodes: 13,
+         expected_total: CASE Product
+           WHEN 'Pitahaya (Dragon Fruit)' THEN 988069.0
+           WHEN 'Goldenberries (Physalis)' THEN 912092.0
+           WHEN 'Exotic Fruits Mix' THEN 65250.0
+           ELSE 0.0
+         END,
+         status: CASE
+           WHEN NodeCount = 13 AND (
+             (Product = 'Pitahaya (Dragon Fruit)' AND ProductTotal = 988069.0) OR
+             (Product = 'Goldenberries (Physalis)' AND ProductTotal = 912092.0) OR
+             (Product = 'Exotic Fruits Mix' AND ProductTotal = 65250.0)
+           )
+           THEN '✅' ELSE '❌'
+         END
+       }) as ByProduct;
+
+// Part D: Total relationship count (117 total: 39×3)
+MATCH (cd:CostData {costBehavior: 'variable'})
+WITH cd,
+     [(cd)-[:COST_FOR_STRUCTURE]->() | 1] as structRels,
+     [(cd)-[:INCURRED_IN_PERIOD]->() | 1] as periodRels,
+     [(cd)-[:COST_FOR_PRODUCT]->() | 1] as productRels
+WITH SUM(size(structRels)) as StructCount,
+     SUM(size(periodRels)) as PeriodCount,
+     SUM(size(productRels)) as ProductCount
+RETURN "🔗 VARIABLE COST RELATIONSHIPS" as Check,
+       StructCount as ToStructure,
+       PeriodCount as ToPeriod,
+       ProductCount as ToProduct,
+       (StructCount + PeriodCount + ProductCount) as TotalRelationships,
+       CASE
+         WHEN StructCount = 39 AND PeriodCount = 39 AND ProductCount = 39
+         THEN '✅ 117 relationships (39×3)'
+         ELSE '❌ Expected 117 total'
+       END as Status;
+
+// Part E: Total validation (39 nodes, $1,965,411)
+MATCH (cd:CostData {costBehavior: 'variable'})
+RETURN "✅ PHASE 4 TOTAL VALIDATION" as Check,
+       count(cd) as TotalVariableNodes,
+       SUM(cd.amount) as TotalAmount,
+       39 as ExpectedNodes,
+       1965411.0 as ExpectedAmount,
+       CASE
+         WHEN count(cd) = 39 AND SUM(cd.amount) = 1965411.0
+         THEN '✅ Phase 4 Complete'
+         ELSE '❌ Validation Failed'
+       END as Status;
+
+// Expected Results:
+// Part A: 3 products (Pitahaya: 13 nodes/$988,069, Goldenberries: 13 nodes/$912,092,
+//         Exotic Fruits: 13 nodes/$65,250)
+// Part D: 117 total relationships (39 COST_FOR_STRUCTURE + 39 INCURRED_IN_PERIOD +
+//         39 COST_FOR_PRODUCT)
+// Part E: 39 total variable nodes, $1,965,411 total amount
 ```
 
 #### Step 6: Run Comprehensive Validation
