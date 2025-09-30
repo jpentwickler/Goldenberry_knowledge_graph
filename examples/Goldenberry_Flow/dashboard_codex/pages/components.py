@@ -35,3 +35,12 @@ def render_page_header(title: str, description: Optional[str] = None, *, show_st
         """,
         unsafe_allow_html=True,
     )
+
+def render_empty_state(message: str) -> None:
+    """Render a shared empty-state block."""
+
+    st.markdown(
+        f"<div class='empty-state'>{message}</div>",
+        unsafe_allow_html=True,
+    )
+
