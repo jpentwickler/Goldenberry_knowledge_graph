@@ -1,4 +1,4 @@
-"""
+﻿"""
 Neo4j data access layer for the Codex Goldenberry dashboard.
 Keeps the API compatible with the original implementation while improving
 logging, typing, and data post-processing.
@@ -115,6 +115,176 @@ class Neo4jConnection:
         """
         data = self.execute_query(query)
         return float(data[0]["avgPricePerKg"] or 0.0) if data else 0.0
+
+    def get_total_costs(self) -> float:
+        """Return the sum of all recorded costs."""
+
+        data = self.execute_query("MATCH (cd:CostData) RETURN SUM(cd.amount) AS totalCosts")
+        return float(data[0]["totalCosts"] or 0.0) if data else 0.0
+
+    def get_variable_costs(self) -> float:
+        """Return the sum of all product-linked costs."""
+
+        query = """
+        MATCH (cd:CostData)-[:COST_FOR_PRODUCT]->(:Product)
+        RETURN SUM(cd.amount) AS variableCosts
+        """
+        data = self.execute_query(query)
+        return float(data[0]["variableCosts"] or 0.0) if data else 0.0
+
+    def get_fixed_costs(self) -> float:
+        """Return the sum of costs without an associated product."""
+
+        query = """
+        MATCH (cd:CostData)
+        WHERE NOT (cd)-[:COST_FOR_PRODUCT]->(:Product)
+        RETURN SUM(cd.amount) AS fixedCosts
+        """
+        data = self.execute_query(query)
+        return float(data[0]["fixedCosts"] or 0.0) if data else 0.0
+
+    def get_cost_timeseries(self, product: Optional[str] = None, category: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Return monthly cost totals optionally filtered by product or category."""
+
+        query = """
+        MATCH (cd:CostData)-[:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+        MATCH (cd)-[:COST_FOR_STRUCTURE]->(cs:CostStructure)
+        OPTIONAL MATCH (cd)-[:COST_FOR_PRODUCT]->(p:Product)
+        WITH cd, tp, cs, p
+        WHERE ($product IS NULL OR p.name = $product)
+          AND ($category IS NULL OR cs.name = $category)
+        RETURN p.name AS product,
+               cs.name AS category,
+               tp.year AS year,
+               tp.month AS month,
+               SUM(cd.amount) AS cost
+        ORDER BY year, month, category, product
+        """
+        result = self.execute_query(query, {"product": product, "category": category})
+
+        records: List[Dict[str, Any]] = []
+        for row in result:
+            records.append(
+                {
+                    "product": row.get("product"),
+                    "category": row.get("category"),
+                    "year": int(row["year"]) if row.get("year") is not None else 0,
+                    "month": int(row["month"]) if row.get("month") is not None else 0,
+                    "cost": float(row["cost"] or 0.0),
+                }
+            )
+
+        return records
+
+    def get_quarterly_costs(self, product: Optional[str] = None, category: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Return quarterly cost totals optionally filtered by product or category."""
+
+        query = """
+        MATCH (cd:CostData)-[:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+        MATCH (cd)-[:COST_FOR_STRUCTURE]->(cs:CostStructure)
+        OPTIONAL MATCH (cd)-[:COST_FOR_PRODUCT]->(p:Product)
+        WITH cd, tp, cs, p
+        WHERE ($product IS NULL OR p.name = $product)
+          AND ($category IS NULL OR cs.name = $category)
+        RETURN p.name AS product,
+               cs.name AS category,
+               tp.year AS year,
+               tp.quarter AS quarter,
+               SUM(cd.amount) AS cost
+        ORDER BY year, quarter, category, product
+        """
+        result = self.execute_query(query, {"product": product, "category": category})
+
+        records: List[Dict[str, Any]] = []
+        for row in result:
+            records.append(
+                {
+                    "product": row.get("product"),
+                    "category": row.get("category"),
+                    "year": int(row["year"]) if row.get("year") is not None else 0,
+                    "quarter": _parse_quarter_value(row.get("quarter")),
+                    "cost": float(row["cost"] or 0.0),
+                }
+            )
+
+        return records
+
+    def get_cost_categories(self) -> List[str]:
+        """Return the list of cost structures that have recorded costs."""
+
+        query = """
+        MATCH (cs:CostStructure)<-[:COST_FOR_STRUCTURE]-(:CostData)
+        RETURN DISTINCT cs.name AS name
+        ORDER BY name
+        """
+        result = self.execute_query(query)
+        return [row["name"] for row in result if row.get("name")]
+
+    def get_product_costs(self, product_name: str) -> List[Dict[str, Any]]:
+        """Return cost totals per category for a specific product."""
+
+        query = """
+        MATCH (p:Product {name: $product_name})
+        OPTIONAL MATCH (cd:CostData)-[:COST_FOR_PRODUCT]->(p)
+        OPTIONAL MATCH (cd)-[:COST_FOR_STRUCTURE]->(cs:CostStructure)
+        WITH cs.name AS category, SUM(cd.amount) AS totalCost
+        RETURN category, totalCost
+        ORDER BY totalCost DESC
+        """
+        result = self.execute_query(query, {"product_name": product_name})
+
+        records: List[Dict[str, Any]] = []
+        for row in result:
+            records.append(
+                {
+                    "category": row.get("category"),
+                    "cost": float(row.get("totalCost") or 0.0),
+                }
+            )
+
+        return records
+
+    def get_average_cost_per_kg(self) -> float:
+        """Return the weighted average cost per kilogram across all products."""
+
+        query = """
+        MATCH (cd:CostData)-[:COST_FOR_PRODUCT]->(p:Product)
+        MATCH (cd)-[:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+        MATCH (vd:VolumeData)-[:VOLUME_FOR_PRODUCT]->(p)
+        MATCH (vd)-[:OCCURS_IN_PERIOD]->(tp)
+        WITH SUM(cd.amount) AS totalCosts, SUM(vd.volume) AS totalVolume
+        RETURN CASE WHEN totalVolume = 0 THEN 0 ELSE totalCosts / totalVolume END AS avgCostPerKg
+        """
+        data = self.execute_query(query)
+        return float(data[0]["avgCostPerKg"] or 0.0) if data else 0.0
+
+
+    def get_variable_cost_timeseries(self) -> List[Dict[str, Any]]:
+        """Return monthly variable costs grouped by product."""
+
+        query = """
+        MATCH (cd:CostData {costBehavior: 'variable'})-[:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+        MATCH (cd)-[:COST_FOR_PRODUCT]->(p:Product)
+        RETURN p.name AS product,
+               tp.year AS year,
+               tp.month AS month,
+               SUM(cd.amount) AS cost
+        ORDER BY year, month, product
+        """
+        result = self.execute_query(query)
+
+        records: List[Dict[str, Any]] = []
+        for row in result:
+            records.append(
+                {
+                    "product": row.get("product"),
+                    "year": int(row.get("year") or 0),
+                    "month": int(row.get("month") or 0),
+                    "cost": float(row.get("cost") or 0.0),
+                }
+            )
+        return records
+
 
     def get_product_metrics(self) -> List[Dict[str, Any]]:
         """Get metrics for all products"""
@@ -240,6 +410,19 @@ class Neo4jConnection:
             )
 
         return records
+    # Housekeeping ------------------------------------------------------
+    def get_connection_status(self) -> Dict[str, Any]:
+        return {
+            "connected": self.connected,
+            "error_message": self.error_message,
+            "database_uri": NEO4J_CONFIG.uri,
+            "database_name": NEO4J_CONFIG.database,
+        }
+
+    def close(self) -> None:
+        if self._driver is not None:
+            self._driver.close()
+            logger.info("Closed Neo4j connection")
 
 
 # ------------------------------------------------------------------
@@ -257,20 +440,6 @@ def _parse_quarter_value(raw) -> int:
         return int(raw)
     except (TypeError, ValueError):
         return 0
-
-    # Housekeeping ------------------------------------------------------
-    def get_connection_status(self) -> Dict[str, Any]:
-        return {
-            "connected": self.connected,
-            "error_message": self.error_message,
-            "database_uri": NEO4J_CONFIG.uri,
-            "database_name": NEO4J_CONFIG.database,
-        }
-
-    def close(self) -> None:
-        if self._driver is not None:
-            self._driver.close()
-            logger.info("Closed Neo4j connection")
 
 
 @lru_cache(maxsize=1)
@@ -292,21 +461,3 @@ __all__ = [
     "get_connection",
     "close_connection",
 ]
-
-
-
-def _parse_quarter_value(raw) -> int:
-    """Convert quarter values like "Q3" or 3 to an integer."""
-
-    if raw is None:
-        return 0
-    if isinstance(raw, int):
-        return raw
-    if isinstance(raw, str):
-        digits = ''.join(ch for ch in raw if ch.isdigit())
-        return int(digits) if digits else 0
-    try:
-        return int(raw)
-    except (TypeError, ValueError):
-        return 0
-

@@ -1,4 +1,4 @@
-"""Codex-crafted Goldenberry Flow dashboard."""
+﻿"""Codex-crafted Goldenberry Flow dashboard."""
 
 from __future__ import annotations
 
@@ -17,10 +17,11 @@ if __package__ in (None, ""):
         executive_dashboard,
         product_performance,
         revenue_overview,
+        cost_overview,
     )
 else:  # pragma: no cover - handled when executed as a module
     from .styles import COLORS, inject_app_css
-    from .pages import executive_dashboard, product_performance, revenue_overview
+    from .pages import executive_dashboard, product_performance, revenue_overview, cost_overview
 
 st.set_page_config(
     page_title="Goldenberry Flow Revenue Dashboard - Codex Edition",
@@ -60,6 +61,7 @@ def main() -> None:
         [
             "Executive Dashboard",
             "Revenue Overview",
+            "Cost Overview",
             "Product Performance",
         ]
     )
@@ -69,8 +71,12 @@ def main() -> None:
     with tabs[1]:
         revenue_overview.render()
     with tabs[2]:
+        cost_overview.render()
+    with tabs[3]:
         product_performance.render()
 
 
 if __name__ == "__main__":
     main()
+
+

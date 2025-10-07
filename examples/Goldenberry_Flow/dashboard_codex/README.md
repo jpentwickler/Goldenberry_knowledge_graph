@@ -41,6 +41,15 @@ configuration as the reference implementation.
 - Sanitised HTML output to prevent raw markup from leaking onto the page
 - Modern colour palette and spacing for a calmer, more professional look
 
+## Cost Extension Progress
+
+- Phase 3 (Cost Timeline Filters) completed: Cost Overview filters now constrain to month range and fruit selection only.
+- Phase 4 (Cost Timeline Chart) completed: product procurement timeline with per-fruit lines and summary card based on `get_variable_cost_timeseries()`.
+- Phase 2 (Cost Overview Page - Navigation Setup) live: added a fourth tab in `app.py`, wired `pages/cost_overview.py`, and reordered tabs so Cost Overview sits between Revenue and Product views.
+- Phase 1 (Database Cost Query Methods) completed with new cost aggregation and timeseries helpers in `database/connection.py`.
+- Restored the class-level `close()` housekeeping method so cached connections shut down cleanly.
+- Validated the new methods against Neo4j using `C:/Users/jprob/anaconda3/envs/base1/python.exe phase1_cost_methods_test.py`.
+
 Next up: revenue timelines, deeper product analytics, and interactive
 filters as outlined in the remaining project phases.
 
