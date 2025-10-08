@@ -55,6 +55,14 @@ METRIC_FIELDS: List[MetricField] = [
 ]
 
 
+COST_CARD_CONFIG = [
+    ("Variable Cost", "variable_cost", "#1E40AF", "currency"),
+    ("Cost per KG", "cost_per_kg", "#1E40AF", "currency_per_kg"),
+    ("Gross Profit", "gross_profit", "#0EA5E9", "currency"),
+    ("Gross Margin", "gross_margin", "#0284C7", "percentage"),
+    ("Profit per KG", "profit_per_kg", "#0EA5E9", "currency_per_kg"),
+]
+
 def _get_display_name(raw_name: str) -> str:
     return PRODUCT_LABELS.get(raw_name, raw_name)
 
@@ -99,6 +107,65 @@ def _render_metric_cards(metrics: Dict[str, float]) -> None:
 
     cards_html.append("</div>")
     st.markdown("".join(cards_html), unsafe_allow_html=True)
+
+
+def _format_cost_metric(value: float | None, style: str) -> str:
+    if value is None:
+        return "--"
+    if style == "currency":
+        return f"${value:,.0f}"
+    if style == "currency_per_kg":
+        return f"${value:,.2f}/kg"
+    if style == "percentage":
+        return f"{value:.1f}%"
+    return str(value)
+
+
+
+def _render_cost_analysis_cards(summary: Dict[str, float | None]) -> None:
+    cols = st.columns(len(COST_CARD_CONFIG))
+    for col, (label, key, color, style) in zip(cols, COST_CARD_CONFIG):
+        value = summary.get(key)
+        display_value = _format_cost_metric(value, style)
+        card_html = (
+            "<div class='metric-card'>"
+            "<div class='label'>{label}</div>"
+            "<div class='value'>{value}</div>"
+            "</div>"
+        ).format(color=color, label=html.escape(label), value=html.escape(display_value))
+        col.markdown(card_html, unsafe_allow_html=True)
+
+
+
+def _calculate_cost_metrics(product: str, metrics: Dict[str, float]) -> Dict[str, float | None]:
+    try:
+        connection = get_connection()
+        variable_cost = connection.get_product_variable_cost(product)
+    except Exception as exc:  # pragma: no cover - runtime fallback
+        st.error(f"Unable to load cost metrics: {exc}")
+        return {
+            "variable_cost": None,
+            "cost_per_kg": None,
+            "gross_profit": None,
+            "gross_margin": None,
+            "profit_per_kg": None,
+        }
+
+    revenue = float(metrics.get("TotalRevenue") or 0.0)
+    volume = float(metrics.get("TotalVolume") or 0.0)
+
+    cost_per_kg = (variable_cost / volume) if volume else None
+    gross_profit = revenue - variable_cost
+    gross_margin = (gross_profit / revenue * 100) if revenue else None
+    profit_per_kg = (gross_profit / volume) if volume else None
+
+    return {
+        "variable_cost": variable_cost,
+        "cost_per_kg": cost_per_kg,
+        "gross_profit": gross_profit,
+        "gross_margin": gross_margin,
+        "profit_per_kg": profit_per_kg,
+    }
 
 
 def _render_combination_chart(df: pd.DataFrame, product: str) -> None:
@@ -297,8 +364,20 @@ def render() -> None:
     _render_market_share(total_revenue, selected_metrics, display_name)
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class='section-header'>
+            <h2 class='section-title'>Cost Structure Analysis</h2>
+        </div>
+        """
+        , unsafe_allow_html=True,
+    )
+    cost_summary = _calculate_cost_metrics(selected_product, selected_metrics)
+    _render_cost_analysis_cards(cost_summary)
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
     st.caption(
-        "Phase 15 will focus on margin analysis, benchmarking, and overall polish."
+        "Phase 16 will focus on margin analysis, benchmarking, and overall polish."
     )
 
 

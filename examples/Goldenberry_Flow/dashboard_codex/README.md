@@ -43,6 +43,10 @@ configuration as the reference implementation.
 
 ## Cost Extension Progress
 
+- Phase 8 (Product Performance Cost Metrics) completed: cost structure cards with variable cost, gross profit, margin, and per-kg metrics.
+- Phase 7 (Cost Structure Overview) completed: donut split and summary card for variable vs fixed totals on the Cost Overview page.
+- Phase 5 (Fixed Cost Timeline Filters) completed: fixed-cost month range selector, three-category filter, and display-mode toggle.
+- Phase 6 (Fixed Cost Timeline Chart) completed: monthly fixed-cost bar chart with stacked/grouped toggle and per-category metrics.
 - Phase 3 (Cost Timeline Filters) completed: Cost Overview filters now constrain to month range and fruit selection only.
 - Phase 4 (Cost Timeline Chart) completed: product procurement timeline with per-fruit lines and summary card based on `get_variable_cost_timeseries()`.
 - Phase 2 (Cost Overview Page - Navigation Setup) live: added a fourth tab in `app.py`, wired `pages/cost_overview.py`, and reordered tabs so Cost Overview sits between Revenue and Product views.

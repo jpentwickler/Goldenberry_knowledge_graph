@@ -1,0 +1,2 @@
+﻿new = "## Cost Extension Progress\n\n- Phase 1 (Database Cost Query Methods) completed with new cost aggregation and timeseries helpers in database/connection.py.\n- Restored the class-level close() housekeeping method so cached connections shut down cleanly.\n- Validated the new methods against Neo4j using C:/Users/jprob/anaconda3/envs/base1/python.exe phase1_cost_methods_test.py.\n\n"
+print(repr(new))

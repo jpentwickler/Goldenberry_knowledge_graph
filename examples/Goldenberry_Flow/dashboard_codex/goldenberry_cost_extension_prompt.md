@@ -171,100 +171,101 @@ ORDER BY year, month
 
 ## PHASE 5: Fixed Cost Timeline Filters
 
-**Status:** Pending
+**Status:** Completed - Fixed cost filters implemented with month range, category limits, and stacked/grouped toggle.
 
 ### Goal: Prepare filters for fixed cost visualization
 
 ### Add to: pages/cost_overview.py
 
-### Requirements:
+### Delivered:
 1. Section header "Fixed Cost Timeline"
-2. Month range selectors (reuse from variable timeline)
-3. Category multiselect limited to: Personnel, Trade Shows, One-time Setup
-4. Toggle (radio buttons) for Bar display mode: Stacked vs Grouped
-5. Session-state persistence for selections
+2. Start/End month selectors reusing variable timeline pattern
+3. Category multiselect limited to Personnel, Trade Shows, One-time Setup
+4. Display mode radio toggle (Stacked vs Grouped) with session-state persistence
+5. Session-state cleanup when category list changes
 6. Empty-state messaging for missing data
 
-### Test before proceeding:
-- Filters render correctly with only three categories
-- Toggle updates stored mode
-- Month range selector clamps correctly
-- Empty-state triggers when selection has no data
+### Tests executed:
+- Filters render and persist selection
+- Category multiselect scoped to three options
+- Toggle persists across reruns
+- Month range clamp works as expected
+- Empty-state triggered for no-data combinations
 
 ---
 
 ## PHASE 6: Fixed Cost Timeline Chart
 
-**Status:** Pending
+**Status:** Completed - Plotly bar chart visualizing monthly fixed costs with summary metrics.
 
 ### Goal: Build bar chart visualizing monthly fixed costs
 
 ### Add to: pages/cost_overview.py
 
-### Requirements:
-1. Use Plotly bar chart with toggle-controlled stacking/grouping
-2. X-axis: monthly periods (Sep 2024 - Sep 2025)
-3. Series: Personnel, Trade Shows, One-time Setup
-4. Align colors with fixed cost palette (blue variations + accent for one-time)
-5. Include caption summarizing total fixed cost for selected range
-6. Provide summary card showing totals per category
-7. Handle empty selections with friendly message
+### Delivered:
+1. Plotly bar chart grouped by month, colored per fixed cost category
+2. Stacked vs Grouped toggle wired to Plotly `barmode`
+3. Palette aligned with fixed cost scheme (blue variants + accent)
+4. Caption summarizing total spend for selected months
+5. Metric row showing totals per category plus overall total
+6. Empty-state handling for no data
 
-### Test before proceeding:
-- Chart reflects toggle state (stacked vs grouped)
-- Bars update immediately when filters change
-- Totals in summary card align with chart data
-- Hover tooltips display month, category, and cost
-- Handles empty dataset without errors
+### Tests executed:
+- Chart updates immediately on filter/toggle changes
+- Hover shows month/category/cost
+- Summary metrics match filtered data
+- Handles empty selections without errors
 
 ---
 
-## PHASE 7: Product Performance - Cost Metrics Cards
+## PHASE 7: Cost Structure Overview
+
+**Status:** Completed - Cost structure donut and summary card deployed on Cost Overview page.
+
+### Goal: Add donut summary of fixed vs variable costs
+
+### Add to: pages/cost_overview.py (beneath fixed timeline section)
+
+### Delivered:
+1. Donut chart comparing variable vs fixed totals using blue palette
+2. Totals loaded via new `get_cost_totals_by_behavior()` helper
+3. Summary card with overall total plus fixed/variable splits
+4. Responsive layout (chart + card columns)
+5. Empty-state messaging when totals are zero
+
+### Tests executed:
+- Donut slices match aggregated Neo4j sums
+- Summary card totals equal chart totals
+- Hover/legend show accurate values
+- Works when either total is zero (renders informative message)
+- No Streamlit session-state warnings
+
+---
+
+## PHASE 8: Product Performance - Cost Metrics Cards
+
+**Status:** Completed - Cost structure analysis cards embedded in Product Performance page.
 
 ### Goal: Add 5 cost/profitability metric cards to Product Performance page
 
 ### Modify: pages/product_performance.py
 
-### Requirements:
-1. Add new section after Market Share gauge
-2. Section header: "Cost Structure Analysis"
-3. Five metric cards in horizontal row:
-   - **Variable Cost**: Total direct costs for selected product
-   - **Cost per KG**: Variable cost / total volume
-   - **Gross Profit**: Revenue - Variable Cost
-   - **Gross Margin**: (Gross Profit / Revenue) × 100
-   - **Profit per KG**: Gross Profit / total volume
-4. Card styling:
-   - Dark blue left border for cost metrics (#1E40AF)
-   - Sky blue left border for profit metrics (#0EA5E9)
-   - Medium blue left border for margin metrics (#0284C7)
-5. Update when product selection changes
-6. Match existing metric card design pattern
+### Delivered:
+1. Section header "Cost Structure Analysis" beneath market share gauge
+2. Five cards showing Variable Cost, Cost per KG, Gross Profit, Gross Margin, Profit per KG
+3. Metrics sourced via new `get_product_variable_cost()` helper
+4. Shared card styling consistent with existing revenue cards
+5. Real-time updates when product selection changes
+6. Graceful handling for division-by-zero scenarios
 
-### Calculation Logic:
-```python
-# Get product-specific data
-product_revenue = get_product_revenue(selected_product)
-product_volume = get_product_volume(selected_product)
-variable_cost = get_product_variable_costs(selected_product)
-
-# Calculate metrics
-cost_per_kg = variable_cost / product_volume
-gross_profit = product_revenue - variable_cost
-gross_margin = (gross_profit / product_revenue) * 100
-profit_per_kg = gross_profit / product_volume
-```
-
-### Test before proceeding:
-- All 5 cards display correctly
-- Values update when product selection changes
-- Calculations are accurate for all three products
-- Styling matches existing metric cards
-- Color coding is correct (all blue tones)
+### Tests executed:
+- Switched between all products to confirm values update
+- Verified gross profit/margin formulas against manual calculations
+- Confirmed no Streamlit warnings (session state clean)
 
 ---
 
-## PHASE 8: Product Performance - Profitability Waterfall Chart
+## PHASE 9: Product Performance - Profitability Waterfall Chart
 
 ### Goal: Add waterfall chart showing revenue to profit breakdown
 
@@ -300,7 +301,7 @@ net_profit = gross_profit - allocated_fixed
 
 ---
 
-## PHASE 9: Product Performance - Cost Composition Donut
+## PHASE 10: Product Performance - Cost Composition Donut
 
 ### Goal: Add donut chart showing cost breakdown for selected product
 
@@ -328,7 +329,7 @@ net_profit = gross_profit - allocated_fixed
 
 ---
 
-## PHASE 10: Product Performance - Cost Trends Sparklines
+## PHASE 11: Product Performance - Cost Trends Sparklines
 
 ### Goal: Add 4 mini trend charts showing cost/profit metrics over time
 
@@ -361,7 +362,7 @@ net_profit = gross_profit - allocated_fixed
 
 ---
 
-## PHASE 11: Executive Dashboard - Cost Metrics Row
+## PHASE 12: Executive Dashboard - Cost Metrics Row
 
 ### Goal: Add 6 cost-related metric cards to Executive Dashboard
 
@@ -389,7 +390,7 @@ net_profit = gross_profit - allocated_fixed
 
 ---
 
-## PHASE 12: Executive Dashboard - Enhanced Product Cards
+## PHASE 13: Executive Dashboard - Enhanced Product Cards
 
 ### Goal: Replace existing product cards with enhanced version including cost/profit
 
@@ -418,7 +419,7 @@ net_profit = gross_profit - allocated_fixed
 
 ---
 
-## PHASE 13: Executive Dashboard - Cost Distribution Donut
+## PHASE 14: Executive Dashboard - Cost Distribution Donut
 
 ### Goal: Add cost breakdown donut chart next to revenue donut
 
@@ -456,7 +457,7 @@ net_profit = gross_profit - allocated_fixed
 
 ---
 
-## PHASE 14: Executive Dashboard - Business Performance Section
+## PHASE 15: Executive Dashboard - Business Performance Section
 
 ### Goal: Add overall business performance metrics and consolidated table
 
@@ -495,7 +496,7 @@ net_margin = (net_profit / product_revenue) * 100
 
 ---
 
-## PHASE 15: Polish and Documentation
+## PHASE 16: Polish and Documentation
 
 ### Goal: Final refinements, error handling, and documentation
 

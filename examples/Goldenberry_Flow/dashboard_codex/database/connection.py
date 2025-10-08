@@ -243,6 +243,21 @@ class Neo4jConnection:
             )
 
         return records
+    def get_product_variable_cost(self, product_name: str) -> float:
+        """Return aggregated variable cost for a specific product."""
+
+        query = """
+        MATCH (p:Product {name: $product_name})
+        MATCH (cd:CostData {costBehavior: 'variable'})-[:COST_FOR_PRODUCT]->(p)
+        RETURN SUM(cd.amount) AS variableCost
+        """
+        result = self.execute_query(query, {"product_name": product_name})
+        if not result:
+            return 0.0
+        value = result[0].get("variableCost")
+        return float(value or 0.0)
+
+
 
     def get_average_cost_per_kg(self) -> float:
         """Return the weighted average cost per kilogram across all products."""
@@ -284,6 +299,49 @@ class Neo4jConnection:
                 }
             )
         return records
+
+
+    def get_fixed_cost_timeseries(self) -> List[Dict[str, Any]]:
+        """Return monthly fixed costs grouped by cost structure."""
+
+        query = """
+        MATCH (cd:CostData {costBehavior: 'fixed'})-[:INCURRED_IN_PERIOD]->(tp:TimePeriod)
+        MATCH (cd)-[:COST_FOR_STRUCTURE]->(cs:CostStructure)
+        RETURN cs.name AS category,
+               tp.year AS year,
+               tp.month AS month,
+               SUM(cd.amount) AS cost
+        ORDER BY year, month, category
+        """
+        result = self.execute_query(query)
+
+        records: List[Dict[str, Any]] = []
+        for row in result:
+            records.append(
+                {
+                    "category": row.get("category"),
+                    "year": int(row.get("year") or 0),
+                    "month": int(row.get("month") or 0),
+                    "cost": float(row.get("cost") or 0.0),
+                }
+            )
+        return records
+
+
+    def get_cost_totals_by_behavior(self) -> Dict[str, float]:
+        """Return aggregated totals for variable and fixed costs."""
+
+        query = """
+        MATCH (cd:CostData)
+        RETURN cd.costBehavior AS behavior, SUM(cd.amount) AS total
+        """
+        result = self.execute_query(query)
+        totals: Dict[str, float] = {"variable": 0.0, "fixed": 0.0}
+        for row in result:
+            behavior = (row.get("behavior") or "").lower()
+            if behavior in totals:
+                totals[behavior] = float(row.get("total") or 0.0)
+        return totals
 
 
     def get_product_metrics(self) -> List[Dict[str, Any]]:

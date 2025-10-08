@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__neo4j-cypher-local__write_neo4j_cypher",
+      "mcp__neo4j-cypher-local__read_neo4j_cypher",
+      "mcp__neo4j-cypher-local__get_neo4j_schema"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
