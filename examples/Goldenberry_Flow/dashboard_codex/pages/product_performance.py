@@ -1,4 +1,4 @@
-"""Product performance page with selector-driven metrics and charts."""
+﻿"""Product performance page with selector-driven metrics and charts."""
 
 from __future__ import annotations
 
@@ -56,11 +56,11 @@ METRIC_FIELDS: List[MetricField] = [
 
 
 COST_CARD_CONFIG = [
-    ("Variable Cost", "variable_cost", "#1E40AF", "currency"),
-    ("Cost per KG", "cost_per_kg", "#1E40AF", "currency_per_kg"),
-    ("Gross Profit", "gross_profit", "#0EA5E9", "currency"),
-    ("Gross Margin", "gross_margin", "#0284C7", "percentage"),
-    ("Profit per KG", "profit_per_kg", "#0EA5E9", "currency_per_kg"),
+    ("Variable Cost", "variable_cost", "currency"),
+    ("Cost per KG", "cost_per_kg", "currency_per_kg"),
+    ("Gross Profit", "gross_profit", "currency"),
+    ("Gross Margin", "gross_margin", "percentage"),
+    ("Profit per KG", "profit_per_kg", "currency_per_kg"),
 ]
 
 def _get_display_name(raw_name: str) -> str:
@@ -124,7 +124,7 @@ def _format_cost_metric(value: float | None, style: str) -> str:
 
 def _render_cost_analysis_cards(summary: Dict[str, float | None]) -> None:
     cols = st.columns(len(COST_CARD_CONFIG))
-    for col, (label, key, color, style) in zip(cols, COST_CARD_CONFIG):
+    for col, (label, key, style) in zip(cols, COST_CARD_CONFIG):
         value = summary.get(key)
         display_value = _format_cost_metric(value, style)
         card_html = (
@@ -132,14 +132,13 @@ def _render_cost_analysis_cards(summary: Dict[str, float | None]) -> None:
             "<div class='label'>{label}</div>"
             "<div class='value'>{value}</div>"
             "</div>"
-        ).format(color=color, label=html.escape(label), value=html.escape(display_value))
+        ).format(label=html.escape(label), value=html.escape(display_value))
         col.markdown(card_html, unsafe_allow_html=True)
 
 
 
-def _calculate_cost_metrics(product: str, metrics: Dict[str, float]) -> Dict[str, float | None]:
+def _calculate_cost_metrics(connection: Neo4jConnection, product: str, metrics: Dict[str, float], total_revenue_all: float) -> Dict[str, float | None]:
     try:
-        connection = get_connection()
         variable_cost = connection.get_product_variable_cost(product)
     except Exception as exc:  # pragma: no cover - runtime fallback
         st.error(f"Unable to load cost metrics: {exc}")
@@ -154,10 +153,21 @@ def _calculate_cost_metrics(product: str, metrics: Dict[str, float]) -> Dict[str
     revenue = float(metrics.get("TotalRevenue") or 0.0)
     volume = float(metrics.get("TotalVolume") or 0.0)
 
+    product_cost_rows = connection.get_product_costs(product)
+    cost_lookup = {row.get("category"): float(row.get("cost") or 0.0) for row in product_cost_rows}
+    procurement_cost = cost_lookup.get("Fruit Procurement", 0.0)
+    packaging_cost = max(variable_cost - procurement_cost, 0.0)
+
     cost_per_kg = (variable_cost / volume) if volume else None
     gross_profit = revenue - variable_cost
     gross_margin = (gross_profit / revenue * 100) if revenue else None
     profit_per_kg = (gross_profit / volume) if volume else None
+
+    totals_behavior = connection.get_cost_totals_by_behavior()
+    total_fixed_costs = float(totals_behavior.get("fixed", 0.0))
+    revenue_share = (revenue / total_revenue_all) if total_revenue_all else 0.0
+    allocated_fixed = total_fixed_costs * revenue_share
+    net_profit = gross_profit - allocated_fixed
 
     return {
         "variable_cost": variable_cost,
@@ -165,6 +175,9 @@ def _calculate_cost_metrics(product: str, metrics: Dict[str, float]) -> Dict[str
         "gross_profit": gross_profit,
         "gross_margin": gross_margin,
         "profit_per_kg": profit_per_kg,
+        "allocated_fixed": allocated_fixed,
+        "net_profit": net_profit,
+        "revenue": revenue,
     }
 
 
@@ -263,6 +276,51 @@ def _render_market_share(total_revenue: float, selected_metrics: Dict[str, float
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
+
+
+def _render_profitability_waterfall(summary: Dict[str, float | None], display_name: str) -> None:
+    revenue = float(summary.get("revenue") or 0.0)
+    variable_cost = float(summary.get("variable_cost") or 0.0)
+    allocated_fixed = float(summary.get("allocated_fixed") or 0.0)
+    net_profit = float(summary.get("net_profit") or 0.0)
+
+    if revenue == 0 and net_profit == 0:
+        render_empty_state("Waterfall data is not available for this product yet.")
+        return
+
+    steps = [
+        ("Revenue", revenue, "relative"),
+        ("Variable Costs", -variable_cost, "relative"),
+        ("Allocated Fixed", -allocated_fixed, "relative"),
+        ("Net Profit", net_profit, "total"),
+    ]
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Waterfall(
+            name=f"{display_name} Profitability",
+            orientation="v",
+            x=[name for name, _, _ in steps],
+            measure=[measure for _, _, measure in steps],
+            y=[value for _, value, _ in steps],
+            text=[f"${abs(value):,.0f}" for _, value, _ in steps],
+            textposition="outside",
+            decreasing=dict(marker=dict(color="#1E3A8A")),
+            increasing=dict(marker=dict(color="#90CAF9")),
+            totals=dict(marker=dict(color="#38BDF8")),
+            connector=dict(line=dict(color="#B0BEC5")),
+            hovertemplate="<b>%{x}</b><br>$%{y:,.0f}<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        margin=dict(t=40, b=20, l=20, r=20),
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    st.caption("*Fixed costs allocated proportionally by revenue")
 def render() -> None:
     """Render the product performance page with selector and metrics."""
 
@@ -271,6 +329,7 @@ def render() -> None:
         "Choose a product to review revenue, volume, and pricing metrics.",
     )
 
+    connection = get_connection()
     metrics = _load_product_metrics()
     if not metrics:
         st.markdown(
@@ -372,8 +431,20 @@ def render() -> None:
         """
         , unsafe_allow_html=True,
     )
-    cost_summary = _calculate_cost_metrics(selected_product, selected_metrics)
+    cost_summary = _calculate_cost_metrics(connection, selected_product, selected_metrics, total_revenue)
     _render_cost_analysis_cards(cost_summary)
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class='section-header'>
+            <h2 class='section-title'>How Revenue Becomes Profit</h2>
+        </div>
+        """
+        , unsafe_allow_html=True,
+    )
+    st.caption("Waterfall view of how revenue turns into net profit with cost deductions.")
+    _render_profitability_waterfall(cost_summary, display_name)
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
     st.caption(
@@ -383,4 +454,5 @@ def render() -> None:
 
 if __name__ == "__main__":  # pragma: no cover - standalone Streamlit page
     render()
+
 
