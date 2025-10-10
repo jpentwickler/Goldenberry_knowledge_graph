@@ -43,6 +43,7 @@ configuration as the reference implementation.
 
 ## Cost Extension Progress
 
+- Phase 9 (Profitability Waterfall) completed: revenue-to-profit waterfall using variable vs fixed cost categories.
 - Phase 8 (Product Performance Cost Metrics) completed: cost structure cards with variable cost, gross profit, margin, and per-kg metrics.
 - Phase 7 (Cost Structure Overview) completed: donut split and summary card for variable vs fixed totals on the Cost Overview page.
 - Phase 5 (Fixed Cost Timeline Filters) completed: fixed-cost month range selector, three-category filter, and display-mode toggle.

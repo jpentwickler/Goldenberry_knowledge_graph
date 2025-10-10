@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable, Dict, List
 
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -16,10 +17,12 @@ if __package__ in (None, ""):
     package_root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(package_root.parent))
     from dashboard_codex.database import get_connection
-    from dashboard_codex.pages.components import render_page_header
+    from dashboard_codex.pages.components import render_page_header, render_empty_state
+    from dashboard_codex.styles import COLORS
 else:  # pragma: no cover - executed in package context
     from ..database import get_connection
-    from .components import render_page_header
+    from .components import render_page_header, render_empty_state
+    from ..styles import COLORS
 
 
 PRODUCT_LABELS: Dict[str, str] = {
@@ -168,6 +171,7 @@ def _calculate_cost_metrics(connection: Neo4jConnection, product: str, metrics: 
     revenue_share = (revenue / total_revenue_all) if total_revenue_all else 0.0
     allocated_fixed = total_fixed_costs * revenue_share
     net_profit = gross_profit - allocated_fixed
+    total_cost = variable_cost + allocated_fixed
 
     return {
         "variable_cost": variable_cost,
@@ -178,6 +182,9 @@ def _calculate_cost_metrics(connection: Neo4jConnection, product: str, metrics: 
         "allocated_fixed": allocated_fixed,
         "net_profit": net_profit,
         "revenue": revenue,
+        "procurement_cost": procurement_cost,
+        "packaging_cost": packaging_cost,
+        "total_cost": total_cost,
     }
 
 
@@ -276,6 +283,57 @@ def _render_market_share(total_revenue: float, selected_metrics: Dict[str, float
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
+
+
+
+
+def _render_cost_breakdown_donut(summary: Dict[str, float | None]) -> None:
+    procurement_cost = float(summary.get("procurement_cost") or 0.0)
+    allocated_fixed = float(summary.get("allocated_fixed") or 0.0)
+
+    slices = [
+        {"category": "Fruit Procurement", "value": procurement_cost},
+        {"category": "Allocated Fixed Costs", "value": allocated_fixed},
+    ]
+    total_cost = sum(item["value"] for item in slices)
+
+    if total_cost <= 0:
+        render_empty_state("Cost breakdown is not available for this product yet.")
+        return
+
+    chart_df = pd.DataFrame(slices)
+
+    fig = px.pie(
+        chart_df,
+        names="category",
+        values="value",
+        color="category",
+        color_discrete_map={
+            "Fruit Procurement": "#1E3A8A",
+            "Allocated Fixed Costs": "#60A5FA",
+        },
+        hole=0.65,
+    )
+    fig.update_traces(
+        sort=False,
+        textposition="outside",
+        texttemplate="%{label}: %{percent:.1%}",
+        hovertemplate="<b>%{label}</b><br>$%{value:,.0f}<extra></extra>",
+    )
+    fig.update_layout(
+        margin=dict(t=10, b=10, l=10, r=10),
+        showlegend=False,
+        paper_bgcolor="#FFFFFF",
+        annotations=[
+            dict(
+                text=f"Total Cost<br>${total_cost:,.0f}",
+                showarrow=False,
+                font=dict(size=18, color=COLORS["text_primary"]),
+            )
+        ],
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
 def _render_profitability_waterfall(summary: Dict[str, float | None], display_name: str) -> None:
@@ -423,6 +481,24 @@ def render() -> None:
     _render_market_share(total_revenue, selected_metrics, display_name)
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+    cost_summary = _calculate_cost_metrics(connection, selected_product, selected_metrics, total_revenue)
+
+    st.markdown(
+        """
+        <div class='section-header'>
+            <h2 class='section-title'>Cost Breakdown by Category</h2>
+        </div>
+        """
+        , unsafe_allow_html=True,
+    )
+    st.caption("Breaks down procurement and fixed allocations for the selected product.")
+    donut_col, sparkline_col = st.columns([2, 1])
+    with donut_col:
+        _render_cost_breakdown_donut(cost_summary)
+    with sparkline_col:
+        render_empty_state("Cost trend sparklines will appear here in Phase 11.")
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
     st.markdown(
         """
         <div class='section-header'>
@@ -431,7 +507,6 @@ def render() -> None:
         """
         , unsafe_allow_html=True,
     )
-    cost_summary = _calculate_cost_metrics(connection, selected_product, selected_metrics, total_revenue)
     _render_cost_analysis_cards(cost_summary)
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)

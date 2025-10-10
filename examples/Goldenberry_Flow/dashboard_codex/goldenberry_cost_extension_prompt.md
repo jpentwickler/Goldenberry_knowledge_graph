@@ -45,7 +45,7 @@ Accent for trends: #60A5FA (bright blue)
 
 ## PHASE 1: Database Cost Query Methods
 
-**Status:** Completed - cost query helpers added to `database/connection.py` and connection cleanup restored.
+**Status:** Completed
 
 ### Goal: Add cost data retrieval methods to Neo4jConnection class
 
@@ -98,7 +98,7 @@ ORDER BY year, month
 
 ## PHASE 2: Cost Overview Page - Navigation Setup
 
-**Status:** Completed - navigation updated with Cost Overview tab and placeholder page stub in `pages/cost_overview.py`.
+**Status:** Completed
 
 ### Goal: Add fourth navigation tab for Cost Overview page
 
@@ -126,7 +126,7 @@ ORDER BY year, month
 
 ## PHASE 3: Cost Timeline Filters
 
-**Status:** Completed - Variable cost filters implemented with product-only selection and live dataset wiring.
+**Status:** Completed
 
 ### Goal: Create filter controls for Cost Timeline section
 
@@ -149,7 +149,7 @@ ORDER BY year, month
 
 ## PHASE 4: Cost Timeline Chart
 
-**Status:** Completed - Product procurement timeline chart with per-product summary card.
+**Status:** Completed
 
 ### Goal: Add multi-line chart showing monthly variable costs by product
 
@@ -171,7 +171,7 @@ ORDER BY year, month
 
 ## PHASE 5: Fixed Cost Timeline Filters
 
-**Status:** Completed - Fixed cost filters implemented with month range, category limits, and stacked/grouped toggle.
+**Status:** Completed
 
 ### Goal: Prepare filters for fixed cost visualization
 
@@ -196,7 +196,7 @@ ORDER BY year, month
 
 ## PHASE 6: Fixed Cost Timeline Chart
 
-**Status:** Completed - Plotly bar chart visualizing monthly fixed costs with summary metrics.
+**Status:** Completed
 
 ### Goal: Build bar chart visualizing monthly fixed costs
 
@@ -220,7 +220,7 @@ ORDER BY year, month
 
 ## PHASE 7: Cost Structure Overview
 
-**Status:** Completed - Cost structure donut and summary card deployed on Cost Overview page.
+**Status:** Completed
 
 ### Goal: Add donut summary of fixed vs variable costs
 
@@ -244,7 +244,7 @@ ORDER BY year, month
 
 ## PHASE 8: Product Performance - Cost Metrics Cards
 
-**Status:** Completed - Cost structure analysis cards embedded in Product Performance page.
+**Status:** Completed
 
 ### Goal: Add 5 cost/profitability metric cards to Product Performance page
 
@@ -267,41 +267,29 @@ ORDER BY year, month
 
 ## PHASE 9: Product Performance - Profitability Waterfall Chart
 
+**Status:** Completed
+
 ### Goal: Add waterfall chart showing revenue to profit breakdown
 
 ### Add to: pages/product_performance.py (after cost metrics)
 
-### Requirements:
-1. Section header: "How Revenue Becomes Profit"
-2. Waterfall chart with sequential steps:
-   - **Start**: Total Revenue (light blue bar, full height)
-   - **Step 1**: -Fruit Procurement (dark blue bar going down)
-   - **Step 2**: -Container & Packaging (navy blue bar going down)
-   - **Step 3**: -Allocated Fixed Costs* (indigo bar going down)
-   - **End**: Net Profit (sky blue bar at final level)
-3. Use Plotly waterfall chart type
-4. Hover shows amounts and percentages
-5. Caption: "*Fixed costs allocated proportionally by revenue"
-6. Color scheme: Light blues for positive values, darker blues for costs
+### Delivered:
+1. Section header "How Revenue Becomes Profit" with Plotly waterfall
+2. Steps: Revenue, Variable Costs, Allocated Fixed, Net Profit
+3. Fixed cost allocation proportional to revenue share
+4. Hover + labels showing dollar amounts
+5. Footnote indicating allocation method
 
-### Fixed Cost Allocation Formula:
-```python
-# Allocate fixed costs proportionally
-product_revenue_share = product_revenue / total_revenue
-allocated_fixed = total_fixed_costs * product_revenue_share
-net_profit = gross_profit - allocated_fixed
-```
-
-### Test before proceeding:
-- Waterfall displays correctly
-- Shows correct sequential calculation
-- Updates when product changes
-- Hover tooltips work
-- Colors distinguish revenue vs costs (all blue tones)
+### Tests executed:
+- Verified waterfall updates across all products
+- Confirmed Net Profit equals Revenue - Variable - Allocated Fixed
+- Checked zero-data path renders empty-state message
 
 ---
 
 ## PHASE 10: Product Performance - Cost Composition Donut
+**Status:** Completed
+
 
 ### Goal: Add donut chart showing cost breakdown for selected product
 
@@ -312,7 +300,6 @@ net_profit = gross_profit - allocated_fixed
 2. Donut chart (same style as Executive Dashboard revenue donut)
 3. Shows cost composition for selected product:
    - Fruit Procurement (percentage and amount)
-   - Container & Packaging (if applicable)
    - Allocated Fixed Costs (proportional)
 4. Center displays: Total Cost amount
 5. Color scheme: Navy/indigo blues for variable costs, lighter blues for fixed costs
@@ -320,12 +307,15 @@ net_profit = gross_profit - allocated_fixed
 7. Hover shows exact amounts
 8. Layout: Side-by-side with next component (sparklines)
 
-### Test before proceeding:
-- Donut renders correctly
-- Shows accurate percentages
-- Updates with product selection
-- Center value is correct
-- Colors use blue palette consistently
+### Delivered:
+1. Section header and caption updated to reference procurement and fixed allocations only.
+2. Plotly donut chart with Fruit Procurement and Allocated Fixed Cost slices; center annotation shows total cost.
+3. Unified `Name: %` label template with approved blue palette.
+4. Donut rendered beside Phase 11 placeholder using shared layout components.
+
+### Tests executed:
+- Manual Streamlit verification across all products (percentages, totals, empty states).
+- Confirmed color palette compliance and numeric annotation rendering.
 
 ---
 
