@@ -68,6 +68,134 @@ METRIC_DEFINITIONS: List[MetricDefinition] = [
 ]
 
 
+def _format_currency(value: Optional[float], *, decimals: int = 0, suffix: str = "") -> str:
+    if value is None:
+        return "--"
+    return f"${value:,.{decimals}f}{suffix}"
+
+
+def _format_percentage(value: Optional[float], *, decimals: int = 1) -> str:
+    if value is None:
+        return "--"
+    return f"{value:.{decimals}f}%"
+
+
+def _calculate_cost_overview(connection: "Neo4jConnection") -> dict:
+    total_costs = float(connection.get_total_costs() or 0.0)
+    variable_costs = float(connection.get_variable_costs() or 0.0)
+    fixed_costs = float(connection.get_fixed_costs() or 0.0)
+    avg_cost_per_kg = float(connection.get_average_cost_per_kg() or 0.0)
+    total_revenue = float(connection.get_total_revenue() or 0.0)
+
+    gross_margin_pct = None
+    if total_revenue:
+        gross_margin_pct = ((total_revenue - variable_costs) / total_revenue) * 100
+
+    variable_pct = (variable_costs / total_costs * 100) if total_costs else None
+    fixed_pct = (fixed_costs / total_costs * 100) if total_costs else None
+
+    cost_records = connection.get_cost_timeseries()
+    month_keys = {
+        (row.get("year"), row.get("month"))
+        for row in cost_records
+        if row.get("year") and row.get("month")
+    }
+    month_count = len(month_keys)
+    avg_monthly_cost = (total_costs / month_count) if month_count else None
+
+    return {
+        "total_costs": total_costs,
+        "variable_costs": variable_costs,
+        "fixed_costs": fixed_costs,
+        "variable_pct": variable_pct,
+        "fixed_pct": fixed_pct,
+        "avg_cost_per_kg": avg_cost_per_kg,
+        "gross_margin_pct": gross_margin_pct,
+        "avg_monthly_cost": avg_monthly_cost,
+        "month_count": month_count,
+    }
+
+
+def _render_cost_metrics(connection: "Neo4jConnection") -> None:
+    try:
+        summary = _calculate_cost_overview(connection)
+    except Exception as exc:  # pragma: no cover - display fallback
+        st.error(f"Unable to load cost overview: {exc}")
+        return
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="section-header">
+            <h2 class="section-title">Cost Overview</h2>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    month_note = (
+        f"{summary['month_count']} recorded month{'s' if summary['month_count'] != 1 else ''}"
+        if summary["month_count"]
+        else None
+    )
+
+    cards = [
+        {
+            "label": "Total Costs",
+            "value": _format_currency(summary["total_costs"]),
+            "footnote": None,
+        },
+        {
+            "label": "Variable Costs",
+            "value": _format_currency(summary["variable_costs"]),
+            "footnote": (
+                f"{summary['variable_pct']:.1f}% of total" if summary["variable_pct"] is not None else None
+            ),
+        },
+        {
+            "label": "Fixed Costs",
+            "value": _format_currency(summary["fixed_costs"]),
+            "footnote": (
+                f"{summary['fixed_pct']:.1f}% of total" if summary["fixed_pct"] is not None else None
+            ),
+        },
+        {
+            "label": "Avg Cost per KG",
+            "value": _format_currency(summary["avg_cost_per_kg"], decimals=2, suffix="/kg"),
+            "footnote": None,
+        },
+        {
+            "label": "Gross Margin",
+            "value": _format_percentage(summary["gross_margin_pct"]),
+            "footnote": "Avg across all products",
+        },
+        {
+            "label": "Avg Monthly Cost",
+            "value": _format_currency(summary["avg_monthly_cost"]),
+            "footnote": month_note,
+        },
+    ]
+
+    cards_html: List[str] = ["<div class='metric-grid'>"]
+    for card in cards:
+        cards_html.append(
+            "<div class='metric-card'>"
+            "<div class='label'>{label}</div>"
+            "<div class='value'>{value}</div>"
+            "{footnote}"
+            "</div>".format(
+                label=html.escape(card["label"]),
+                value=html.escape(card["value"]),
+                footnote=(
+                    f"<small>{html.escape(card['footnote'])}</small>" if card.get("footnote") else ""
+                ),
+            )
+        )
+    cards_html.append("</div>")
+
+    st.markdown("".join(cards_html), unsafe_allow_html=True)
+
+
 def render() -> None:
     """Render the executive dashboard page."""
 
@@ -78,6 +206,7 @@ def render() -> None:
         "Critical revenue metrics and top product performance at a glance.",
     )
     _render_metrics(connection)
+    _render_cost_metrics(connection)
     product_metrics = _render_product_highlights(connection)
     _render_revenue_share_chart(product_metrics)
 
@@ -108,7 +237,18 @@ def _render_metrics(connection: "Neo4jConnection") -> None:
                 )
             )
 
+    st.markdown(
+        """
+        <div class="section-header">
+            <h2 class="section-title">Revenue Overview</h2>
+        </div>
+        <hr class='section-divider'>
+        """,
+        unsafe_allow_html=True,
+    )
+
     cards_html = ["<div class='metric-grid'>"]
+
     for metric in metrics:
         cards_html.append("<div class='metric-card'>")
         cards_html.append(f"<div class='label'>{html.escape(metric.label)}</div>")

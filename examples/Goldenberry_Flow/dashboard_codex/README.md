@@ -43,6 +43,7 @@ configuration as the reference implementation.
 
 ## Cost Extension Progress
 
+- Phase 12 (Executive Dashboard Cost Metrics) completed: 6-card cost overview row with totals, behavioral splits, and profitability metrics.
 - Phase 11 (Cost Trends Sparklines) completed: 2x2 grid of trend sparklines showing cost/profit metrics over 12 months with delta indicators.
 - Phase 10 (Cost Breakdown Donut) completed: donut chart breaking down procurement and allocated fixed costs for selected product.
 - Phase 9 (Profitability Waterfall) completed: revenue-to-profit waterfall using variable vs fixed cost categories.
