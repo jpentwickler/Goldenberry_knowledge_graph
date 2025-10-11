@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -79,8 +80,9 @@ def _load_product_metrics() -> List[Dict[str, float]]:
         return []
 
 
-def _load_monthly_performance() -> pd.DataFrame:
-    connection = get_connection()
+def _load_monthly_performance(connection=None) -> pd.DataFrame:
+    if connection is None:
+        connection = get_connection()
     try:
         records = connection.get_product_monthly_performance()
     except Exception as exc:  # pragma: no cover - runtime fallback
@@ -186,6 +188,262 @@ def _calculate_cost_metrics(connection: Neo4jConnection, product: str, metrics: 
         "packaging_cost": packaging_cost,
         "total_cost": total_cost,
     }
+
+
+def _format_currency(value: float | None, *, decimals: int = 0, suffix: str = "") -> str:
+    if value is None or pd.isna(value):
+        return "--"
+    return f"${value:,.{decimals}f}{suffix}"
+
+
+def _format_percentage(value: float | None, *, decimals: int = 1, suffix: str = "%") -> str:
+    if value is None or pd.isna(value):
+        return "--"
+    return f"{value:.{decimals}f}{suffix}"
+
+
+def _hex_to_rgba(hex_color: str, alpha: float) -> str:
+    hex_color = hex_color.lstrip("#")
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+
+SPARKLINE_METRICS = [
+    {
+        "key": "variable_cost_per_kg",
+        "label": "Variable Cost per KG",
+        "value_format": lambda value: _format_currency(value, decimals=2, suffix="/kg"),
+        "delta_format": lambda value: _format_currency(value, decimals=2, suffix="/kg"),
+        "trend_direction": "down",
+    },
+    {
+        "key": "gross_margin_pct",
+        "label": "Gross Margin %",
+        "value_format": lambda value: _format_percentage(value, decimals=1),
+        "delta_format": lambda value: _format_percentage(value, decimals=1),
+        "trend_direction": "up",
+    },
+    {
+        "key": "total_cost",
+        "label": "Total Monthly Cost",
+        "value_format": lambda value: _format_currency(value, decimals=0),
+        "delta_format": lambda value: _format_currency(value, decimals=0),
+        "trend_direction": "down",
+    },
+    {
+        "key": "profit_per_kg",
+        "label": "Profit per KG",
+        "value_format": lambda value: _format_currency(value, decimals=2, suffix="/kg"),
+        "delta_format": lambda value: _format_currency(value, decimals=2, suffix="/kg"),
+        "trend_direction": "up",
+    },
+]
+
+
+def _prepare_cost_trend_dataframe(connection: Neo4jConnection, performance_df: pd.DataFrame, product: str) -> pd.DataFrame:
+    if performance_df.empty:
+        return pd.DataFrame()
+
+    product_df = performance_df[performance_df["product"] == product][["date", "revenue", "volume"]].copy()
+    if product_df.empty:
+        return pd.DataFrame()
+
+    variable_records = connection.get_variable_cost_timeseries()
+    variable_df = pd.DataFrame(variable_records)
+    if not variable_df.empty:
+        variable_df["date"] = pd.to_datetime(
+            {"year": variable_df["year"].astype(int), "month": variable_df["month"].astype(int), "day": 1}
+        )
+        variable_df = variable_df[variable_df["product"] == product][["date", "cost"]]
+        variable_df = variable_df.rename(columns={"cost": "variable_cost"})
+    else:
+        variable_df = pd.DataFrame(columns=["date", "variable_cost"])
+
+    fixed_records = connection.get_fixed_cost_timeseries()
+    fixed_totals = pd.DataFrame(columns=["date", "total_fixed_cost"])
+    if fixed_records:
+        fixed_df = pd.DataFrame(fixed_records)
+        fixed_df["date"] = pd.to_datetime(
+            {"year": fixed_df["year"].astype(int), "month": fixed_df["month"].astype(int), "day": 1}
+        )
+        fixed_totals = (
+            fixed_df.groupby("date", as_index=False)["cost"]
+            .sum()
+            .rename(columns={"cost": "total_fixed_cost"})
+        )
+
+    revenue_totals = (
+        performance_df.groupby("date", as_index=False)["revenue"]
+        .sum()
+        .rename(columns={"revenue": "total_revenue"})
+    )
+
+    trend_df = product_df.merge(variable_df, on="date", how="outer")
+    trend_df = trend_df.merge(revenue_totals, on="date", how="left")
+    trend_df = trend_df.merge(fixed_totals, on="date", how="left")
+
+    for column in ["revenue", "volume", "variable_cost", "total_revenue", "total_fixed_cost"]:
+        trend_df[column] = trend_df[column].fillna(0.0)
+
+    trend_df["allocated_fixed"] = 0.0
+    allocation_mask = (
+        (trend_df["total_revenue"] > 0) & (trend_df["revenue"] > 0) & (trend_df["total_fixed_cost"] > 0)
+    )
+    trend_df.loc[allocation_mask, "allocated_fixed"] = (
+        trend_df.loc[allocation_mask, "revenue"] / trend_df.loc[allocation_mask, "total_revenue"]
+    ) * trend_df.loc[allocation_mask, "total_fixed_cost"]
+
+    trend_df["total_cost"] = trend_df["variable_cost"] + trend_df["allocated_fixed"]
+
+    volume_denominator = trend_df["volume"].replace({0: np.nan})
+    revenue_denominator = trend_df["revenue"].replace({0: np.nan})
+
+    trend_df["variable_cost_per_kg"] = trend_df["variable_cost"] / volume_denominator
+    trend_df["profit_per_kg"] = (trend_df["revenue"] - trend_df["total_cost"]) / volume_denominator
+    trend_df["gross_margin_pct"] = ((trend_df["revenue"] - trend_df["variable_cost"]) / revenue_denominator) * 100
+
+    trend_df = trend_df.sort_values("date").drop_duplicates(subset="date", keep="last")
+    trend_df = trend_df[trend_df["date"].notna()]
+    trend_df = trend_df.tail(12).reset_index(drop=True)
+
+    return trend_df[
+        [
+            "date",
+            "revenue",
+            "volume",
+            "variable_cost",
+            "allocated_fixed",
+            "total_cost",
+            "variable_cost_per_kg",
+            "profit_per_kg",
+            "gross_margin_pct",
+        ]
+    ]
+
+
+def _render_cost_trend_sparklines(trend_df: pd.DataFrame) -> None:
+    if trend_df.empty:
+        render_empty_state("Cost trend sparklines are not available for this product yet.")
+        return
+
+    metric_availability = any(trend_df[metric["key"]].notna().any() for metric in SPARKLINE_METRICS)
+    if not metric_availability:
+        render_empty_state("Cost trend sparklines are not available for this product yet.")
+        return
+
+    metric_rows = [SPARKLINE_METRICS[:2], SPARKLINE_METRICS[2:]]
+    for row in metric_rows:
+        columns = st.columns(len(row))
+        for column, metric in zip(columns, row):
+            with column:
+                _render_single_sparkline_card(trend_df, metric)
+
+
+def _render_single_sparkline_card(trend_df: pd.DataFrame, metric_config: Dict[str, Callable]) -> None:
+    key = metric_config["key"]
+    chart_df = trend_df[["date", key]].copy()
+    chart_df[key] = chart_df[key].astype(float)
+
+    data_available = chart_df[key].notna().any()
+    non_null_df = chart_df.dropna(subset=[key])
+
+    current_value = non_null_df.iloc[-1][key] if not non_null_df.empty else None
+    past_value = non_null_df.iloc[-4][key] if len(non_null_df) >= 4 else None
+    delta_value = current_value - past_value if (current_value is not None and past_value is not None) else None
+    pct_change = None
+    if delta_value is not None and past_value not in (None, 0):
+        pct_change = (delta_value / abs(past_value)) * 100
+
+    trend_direction = metric_config.get("trend_direction", "up")
+    improvement = None
+    if delta_value is not None and delta_value != 0:
+        if trend_direction == "up":
+            improvement = delta_value > 0
+        else:
+            improvement = delta_value < 0
+    elif delta_value == 0:
+        improvement = None
+
+    if not data_available:
+        value_display = "--"
+        change_text = "Trend data unavailable"
+        change_color = COLORS["text_muted"]
+        line_color = COLORS["border"]
+    else:
+        value_display = metric_config["value_format"](current_value)
+        if delta_value is None:
+            change_text = "Change data unavailable"
+            change_color = COLORS["text_muted"]
+        else:
+            arrow = "↑" if delta_value > 0 else ("↓" if delta_value < 0 else "→")
+            delta_display = metric_config["delta_format"](abs(delta_value))
+            pct_display = f"{pct_change:+.1f}%" if pct_change is not None else "--"
+            change_text = f"{arrow} {delta_display} ({pct_display}) vs 3 months ago"
+            if improvement is None:
+                change_color = COLORS["text_muted"]
+            elif improvement:
+                change_color = "#60A5FA"
+            else:
+                change_color = "#1E40AF"
+
+        if improvement is None:
+            line_color = COLORS["primary"]
+        elif improvement:
+            line_color = "#60A5FA"
+        else:
+            line_color = "#1E40AF"
+
+    card_html = (
+        "<div class='metric-card' style='margin-bottom:0.4rem;'>"
+        f"<div class='label'>{html.escape(metric_config['label'])}</div>"
+        f"<div class='value'>{html.escape(value_display)}</div>"
+        f"<div style=\"font-size:0.8rem; margin-top:0.35rem; color:{change_color};\">{html.escape(change_text)}</div>"
+        "</div>"
+    )
+    st.markdown(card_html, unsafe_allow_html=True)
+
+    if not data_available:
+        fig = go.Figure()
+        fig.update_layout(
+            height=110,
+            margin=dict(t=10, b=0, l=0, r=0),
+            paper_bgcolor="#FFFFFF",
+            plot_bgcolor="#FFFFFF",
+        )
+        fig.update_xaxes(visible=False)
+        fig.update_yaxes(visible=False)
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        return
+
+    y_values = chart_df[key].where(chart_df[key].notna(), None)
+    display_values = [metric_config["value_format"](value) for value in chart_df[key]]
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=chart_df["date"],
+            y=y_values,
+            mode="lines",
+            line=dict(color=line_color, width=2),
+            fill="tozeroy",
+            fillcolor=_hex_to_rgba(line_color, 0.18),
+            hovertemplate="<b>%{x|%b %Y}</b><br>%{customdata[0]}<extra></extra>",
+            customdata=[[display] for display in display_values],
+        )
+    )
+
+    fig.update_layout(
+        height=110,
+        margin=dict(t=10, b=0, l=0, r=0),
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+    )
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
 def _render_combination_chart(df: pd.DataFrame, product: str) -> None:
@@ -379,6 +637,8 @@ def _render_profitability_waterfall(summary: Dict[str, float | None], display_na
 
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
     st.caption("*Fixed costs allocated proportionally by revenue")
+
+
 def render() -> None:
     """Render the product performance page with selector and metrics."""
 
@@ -449,7 +709,7 @@ def render() -> None:
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
 
-    performance_df = _load_monthly_performance()
+    performance_df = _load_monthly_performance(connection)
     st.markdown(
         """
         <div class='section-header'>
@@ -482,6 +742,7 @@ def render() -> None:
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
     cost_summary = _calculate_cost_metrics(connection, selected_product, selected_metrics, total_revenue)
+    trend_df = _prepare_cost_trend_dataframe(connection, performance_df, selected_product)
 
     st.markdown(
         """
@@ -492,11 +753,11 @@ def render() -> None:
         , unsafe_allow_html=True,
     )
     st.caption("Breaks down procurement and fixed allocations for the selected product.")
-    donut_col, sparkline_col = st.columns([2, 1])
+    donut_col, sparkline_col = st.columns([2, 3])
     with donut_col:
         _render_cost_breakdown_donut(cost_summary)
     with sparkline_col:
-        render_empty_state("Cost trend sparklines will appear here in Phase 11.")
+        _render_cost_trend_sparklines(trend_df)
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
     st.markdown(

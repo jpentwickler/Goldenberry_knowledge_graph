@@ -321,6 +321,8 @@ ORDER BY year, month
 
 ## PHASE 11: Product Performance - Cost Trends Sparklines
 
+**Status:** Completed
+
 ### Goal: Add 4 mini trend charts showing cost/profit metrics over time
 
 ### Add to: pages/product_performance.py
@@ -343,12 +345,16 @@ ORDER BY year, month
 5. Use Plotly or simple SVG for sparklines
 6. Layout: Side-by-side with Cost Donut
 
-### Test before proceeding:
-- All 4 sparklines display
-- Show last 12 months of data
-- Update with product selection
-- Change indicators correct
-- Colors indicate trend direction properly (all blue tones)
+### Delivered:
+1. Added "Cost Trends Over Time" section with a 2x2 grid of Plotly sparklines rendered adjacent to the cost donut.
+2. Metrics include Variable Cost per KG, Gross Margin %, Total Monthly Cost, and Profit per KG - all sourced from the latest 12 months of data.
+3. Each card shows current value, a directional up/down/steady delta line with color-coded change text, and a minimal sparkline that adapts to product selection.
+4. Trends automatically allocate fixed costs by monthly revenue share and reuse the approved blue palette for improvement vs. deterioration cues.
+
+### Tests executed:
+- Manual Streamlit run validating metric updates across all products, including zero-volume edge cases.
+- Verified delta calculations (absolute + percentage) against sample months and confirmed color coding aligns with improvement rules.
+- Confirmed layout responsiveness within the donut/sparkline row and ensured empty-state messaging appears when data is missing.
 
 ---
 

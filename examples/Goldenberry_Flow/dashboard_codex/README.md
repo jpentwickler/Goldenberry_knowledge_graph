@@ -43,6 +43,8 @@ configuration as the reference implementation.
 
 ## Cost Extension Progress
 
+- Phase 11 (Cost Trends Sparklines) completed: 2x2 grid of trend sparklines showing cost/profit metrics over 12 months with delta indicators.
+- Phase 10 (Cost Breakdown Donut) completed: donut chart breaking down procurement and allocated fixed costs for selected product.
 - Phase 9 (Profitability Waterfall) completed: revenue-to-profit waterfall using variable vs fixed cost categories.
 - Phase 8 (Product Performance Cost Metrics) completed: cost structure cards with variable cost, gross profit, margin, and per-kg metrics.
 - Phase 7 (Cost Structure Overview) completed: donut split and summary card for variable vs fixed totals on the Cost Overview page.
