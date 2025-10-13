@@ -43,6 +43,7 @@ configuration as the reference implementation.
 
 ## Cost Extension Progress
 
+- Phase 14 (Cost Distribution Donut) completed: Side-by-side revenue and cost distribution charts with variable/fixed color coding and grouped display.
 - Phase 13 (Enhanced Product Cards) completed: Replaced product cards with cost/profit metrics including gross profit, margin, and cost per KG.
 - Phase 12 (Executive Dashboard Cost Metrics) completed: 6-card cost overview row with totals, behavioral splits, and profitability metrics.
 - Phase 11 (Cost Trends Sparklines) completed: 2x2 grid of trend sparklines showing cost/profit metrics over 12 months with delta indicators.

@@ -343,6 +343,35 @@ class Neo4jConnection:
                 totals[behavior] = float(row.get("total") or 0.0)
         return totals
 
+    def get_cost_totals_by_category(self) -> List[Dict[str, Any]]:
+        """Return aggregated cost totals per cost structure."""
+
+        query = """
+        MATCH (cd:CostData)-[:COST_FOR_STRUCTURE]->(cs:CostStructure)
+        OPTIONAL MATCH (cd)-[:COST_FOR_PRODUCT]->(p:Product)
+        RETURN cs.name AS category,
+               SUM(cd.amount) AS totalCost,
+               CASE WHEN EXISTS((cd)-[:COST_FOR_PRODUCT]->(:Product))
+            OR cd.costBehavior = 'variable'
+       THEN 'variable'
+       ELSE 'fixed'
+       END AS behavior
+        """
+
+        result = self.execute_query(query)
+
+        records: List[Dict[str, Any]] = []
+        for row in result:
+            records.append(
+                {
+                    "category": row.get("category"),
+                    "total_cost": float(row.get("totalCost") or 0.0),
+                    "behavior": (row.get("behavior") or "").lower(),
+                }
+            )
+
+        return records
+
 
     def get_product_metrics(self) -> List[Dict[str, Any]]:
         """Get metrics for all products"""

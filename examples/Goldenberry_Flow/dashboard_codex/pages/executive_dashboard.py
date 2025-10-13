@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, Optional
 
+import pandas as pd
 import plotly.express as px
 import streamlit as st
 
@@ -208,7 +209,7 @@ def render() -> None:
     _render_metrics(connection)
     _render_cost_metrics(connection)
     product_metrics = _render_product_highlights(connection)
-    _render_revenue_share_chart(product_metrics)
+    _render_distribution_section(connection, product_metrics)
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
     st.caption("Additional executive insights, charts, and filters will arrive in the next phase.")
@@ -337,16 +338,30 @@ def _render_product_highlights(connection: "Neo4jConnection") -> List[dict]:
     return products
 
 
-def _render_revenue_share_chart(product_metrics: List[dict]) -> None:
+VARIABLE_BEHAVIOR_COLORS = ["#1E3A8A", "#3730A3", "#4338CA", "#1D4ED8"]
+FIXED_BEHAVIOR_COLORS = ["#60A5FA", "#93C5FD", "#BFDBFE", "#DBEAFE"]
+
+
+def _render_distribution_section(connection: "Neo4jConnection", product_metrics: List[dict]) -> None:
     st.markdown(
         """
         <div class="section-header">
-            <h2 class="section-title">Revenue Distribution</h2>
+            <h2 class="section-title">Distribution Overview</h2>
         </div>
         <hr class='section-divider'>
         """,
         unsafe_allow_html=True,
     )
+
+    revenue_col, cost_col = st.columns(2)
+    with revenue_col:
+        _render_revenue_distribution_chart(product_metrics)
+    with cost_col:
+        _render_cost_distribution_chart(connection)
+
+
+def _render_revenue_distribution_chart(product_metrics: List[dict]) -> None:
+    st.markdown("<h3 style='margin:0 0 0.75rem;'>Revenue Distribution</h3>", unsafe_allow_html=True)
 
     top_products = product_metrics[:3]
     chart_rows = []
@@ -399,10 +414,152 @@ def _render_revenue_share_chart(product_metrics: List[dict]) -> None:
         paper_bgcolor="#FFFFFF",
         plot_bgcolor="#FFFFFF",
         showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.15, x=0.5, xanchor="center"),
+        legend=dict(orientation="h", yanchor="bottom", y=-0.2, x=0.5, xanchor="center"),
         font=dict(color=COLORS["text_primary"], family="Inter, 'Segoe UI', sans-serif"),
         uniformtext_minsize=12,
         uniformtext_mode="hide",
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+
+def _render_cost_distribution_chart(connection: "Neo4jConnection") -> None:
+    st.markdown("<h3 style='margin:0 0 0.75rem;'>Cost Distribution by Category</h3>", unsafe_allow_html=True)
+
+    try:
+        records = connection.get_cost_totals_by_category()
+    except Exception as exc:  # pragma: no cover - runtime fallback
+        st.error(f"Unable to load cost distribution: {exc}")
+        return
+
+    if not records:
+        st.markdown(
+            "<div class='empty-state'>Cost distribution data is not available for the selected period.</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    df = pd.DataFrame(records)
+    if df.empty:
+        st.markdown(
+            "<div class='empty-state'>Cost distribution data is not available for the selected period.</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    df["category"] = df["category"].fillna("Uncategorized")
+    df["behavior"] = df["behavior"].replace({"": "fixed"}).fillna("fixed")
+    df["total_cost"] = df["total_cost"].astype(float)
+    df = df[df["total_cost"] > 0].sort_values("total_cost", ascending=False)
+
+    if df.empty:
+        st.markdown(
+            "<div class='empty-state'>Cost distribution data is not available for the selected period.</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    total_cost = df["total_cost"].sum()
+    share_threshold = 3.0
+
+    grouped_rows = []
+    other_total = 0.0
+    other_details: List[str] = []
+
+    for _, row in df.iterrows():
+        share_pct = (row["total_cost"] / total_cost) * 100 if total_cost else 0.0
+        if share_pct >= share_threshold or not grouped_rows:
+            grouped_rows.append(
+                {
+                    "category": row["category"],
+                    "total_cost": float(row["total_cost"]),
+                    "behavior": row["behavior"],
+                    "share_pct": share_pct,
+                }
+            )
+        else:
+            other_total += float(row["total_cost"])
+            other_details.append(
+                f"{row['category']} ({share_pct:.1f}%, ${row['total_cost']:,.0f})"
+            )
+
+    if other_total > 0:
+        grouped_rows.append(
+            {
+                "category": "Other Costs",
+                "total_cost": other_total,
+                "behavior": "fixed",
+                "share_pct": (other_total / total_cost) * 100 if total_cost else 0.0,
+                "details": list(other_details),
+            }
+        )
+
+    grouped_df = pd.DataFrame(grouped_rows)
+    grouped_df = grouped_df.sort_values("total_cost", ascending=False).reset_index(drop=True)
+
+    color_map = {}
+    variable_index = 0
+    fixed_index = 0
+
+    for category, behavior in zip(grouped_df["category"], grouped_df["behavior"]):
+        if behavior == "variable":
+            color = VARIABLE_BEHAVIOR_COLORS[variable_index % len(VARIABLE_BEHAVIOR_COLORS)]
+            variable_index += 1
+        else:
+            color = FIXED_BEHAVIOR_COLORS[fixed_index % len(FIXED_BEHAVIOR_COLORS)]
+            fixed_index += 1
+        color_map[category] = color
+
+    formatted_costs = grouped_df["total_cost"].map(lambda value: f"${value:,.0f}")
+    hover_text: List[str] = []
+    for index, row in grouped_df.iterrows():
+        lines = [
+            f"<b>{row['category']}</b>",
+            f"Type: {'Variable' if row['behavior'] == 'variable' else 'Fixed'}",
+            f"Cost: {formatted_costs.loc[index]}",
+            f"Share: {row['share_pct']:.1f}%",
+        ]
+        if row["category"] == "Other Costs" and row.get("details"):
+            detail_lines = "<br>".join(f"- {detail}" for detail in row["details"])
+            lines.insert(2, f"Includes:<br>{detail_lines}")
+        hover_text.append("<br>".join(lines))
+
+    fig = px.pie(
+        grouped_df,
+        names="category",
+        values="total_cost",
+        hole=0.55,
+        color="category",
+        color_discrete_map=color_map,
+    )
+
+    fig.update_traces(
+        sort=False,
+        textposition="outside",
+        texttemplate="%{percent:.1%}",
+        hovertext=hover_text,
+        hoverinfo="text",
+        hovertemplate="%{hovertext}<extra></extra>",
+        marker=dict(line=dict(color="#FFFFFF", width=2)),
+        pull=0,
+    )
+
+    fig.update_layout(
+        margin=dict(t=20, b=20, l=10, r=10),
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.2, x=0.5, xanchor="center"),
+        font=dict(color=COLORS["text_primary"], family="Inter, 'Segoe UI', sans-serif"),
+        uniformtext_minsize=12,
+        uniformtext_mode="hide",
+        annotations=[
+            dict(
+                text=f"Total Cost<br>${total_cost:,.0f}",
+                showarrow=False,
+                font=dict(size=15, color=COLORS["text_primary"]),
+            )
+        ],
     )
 
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
