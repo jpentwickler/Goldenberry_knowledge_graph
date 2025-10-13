@@ -289,24 +289,45 @@ def _render_product_highlights(connection: "Neo4jConnection") -> List[dict]:
     product_cards: List[str] = ["<div class='product-grid'>"]
 
     for product in products[:3]:
-        clean_name = html.escape(_clean_product_name(product.get("Product", "")))
-        total_revenue = html.escape(f"${product.get('TotalRevenue', 0.0):,.0f}")
-        total_volume = html.escape(f"{product.get('TotalVolume', 0.0):,.0f} kg")
-        avg_price = html.escape(f"${product.get('AvgPrice', 0.0):.2f}/kg")
+        product_name = product.get("Product", "")
+        clean_name = html.escape(_clean_product_name(product_name))
+        revenue = float(product.get("TotalRevenue") or 0.0)
+        volume = float(product.get("TotalVolume") or 0.0)
+
+        try:
+            variable_cost = float(connection.get_product_variable_cost(product_name))
+        except Exception:  # pragma: no cover - runtime fallback
+            variable_cost = None
+
+        cost_per_kg = (variable_cost / volume) if (variable_cost is not None and volume) else None
+        gross_profit = (revenue - variable_cost) if variable_cost is not None else None
+        gross_margin = (
+            (gross_profit / revenue) * 100 if (gross_profit is not None and revenue) else None
+        )
 
         product_cards.append("<div class='product-card'>")
         product_cards.append(f"<h3>{clean_name}</h3>")
         product_cards.append(
-            "<div class='product-stat'><span>Total Revenue</span><span class='value'>"
-            f"{total_revenue}</span></div>"
+            "<div class='product-stat'><span>Revenue</span><span class='value'>"
+            f"{html.escape(_format_currency(revenue))}</span></div>"
         )
         product_cards.append(
-            "<div class='product-stat'><span>Total Volume</span><span class='value'>"
-            f"{total_volume}</span></div>"
+            "<div class='product-stat'><span>Variable Cost</span><span class='value'>"
+            f"{html.escape(_format_currency(variable_cost))}</span></div>"
         )
         product_cards.append(
-            "<div class='product-stat'><span>Average Price</span><span class='value'>"
-            f"{avg_price}</span></div>"
+            "<div class='product-stat'><span>Gross Profit</span>"
+            f"<span class='value' style='color:#0EA5E9;'>"
+            f"{html.escape(_format_currency(gross_profit))}</span></div>"
+        )
+        product_cards.append(
+            "<div class='product-stat'><span>Gross Margin</span>"
+            f"<span class='value' style='color:#0284C7;'>"
+            f"{html.escape(_format_percentage(gross_margin))}</span></div>"
+        )
+        product_cards.append(
+            "<div class='product-stat'><span>Cost per KG</span><span class='value'>"
+            f"{html.escape(_format_currency(cost_per_kg, decimals=2, suffix='/kg'))}</span></div>"
         )
         product_cards.append("</div>")
 
