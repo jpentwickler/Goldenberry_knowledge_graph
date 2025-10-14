@@ -358,6 +358,8 @@ def _render_distribution_section(connection: "Neo4jConnection", product_metrics:
         _render_revenue_distribution_chart(product_metrics)
     with cost_col:
         _render_cost_distribution_chart(connection)
+    performance = _calculate_business_performance(connection, product_metrics)
+    _render_business_performance(performance)
 
 
 def _render_revenue_distribution_chart(product_metrics: List[dict]) -> None:
@@ -563,6 +565,195 @@ def _render_cost_distribution_chart(connection: "Neo4jConnection") -> None:
     )
 
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+
+def _format_ratio(value: Optional[float]) -> str:
+    if value is None:
+        return "--"
+    return f"{value:.2f}×"
+
+
+def _calculate_business_performance(connection: "Neo4jConnection", product_metrics: List[dict]) -> dict:
+    if not product_metrics:
+        return {
+            "metrics": {},
+            "products": [],
+            "totals": {},
+            "footnote": "*Net profit includes allocated fixed costs.",
+        }
+
+    total_revenue = sum(float(product.get("TotalRevenue") or 0.0) for product in product_metrics)
+    variable_total = float(connection.get_variable_costs() or 0.0)
+    fixed_total = float(connection.get_fixed_costs() or 0.0)
+    total_costs = variable_total + fixed_total
+
+    gross_profit_total = total_revenue - variable_total
+    net_profit_total = gross_profit_total - fixed_total
+
+    overall_profit_margin = (net_profit_total / total_revenue * 100) if total_revenue else None
+    break_even = (total_revenue / total_costs) if total_costs else None
+    contribution_margin = gross_profit_total
+
+    product_rows: List[dict] = []
+    allocated_fixed_total = 0.0
+
+    for product in product_metrics:
+        name = product.get("Product", "")
+        revenue = float(product.get("TotalRevenue") or 0.0)
+        variable_cost = float(connection.get_product_variable_cost(name) or 0.0)
+        gross_profit = revenue - variable_cost
+        gross_margin_pct = (gross_profit / revenue * 100) if revenue else None
+
+        allocation_share = (revenue / total_revenue) if total_revenue else 0.0
+        allocated_fixed = fixed_total * allocation_share
+        allocated_fixed_total += allocated_fixed
+
+        net_profit = gross_profit - allocated_fixed
+        net_margin_pct = (net_profit / revenue * 100) if revenue else None
+
+        product_rows.append(
+            {
+                "product": name,
+                "revenue": revenue,
+                "variable_cost": variable_cost,
+                "gross_profit": gross_profit,
+                "gross_margin_pct": gross_margin_pct,
+                "allocated_fixed": allocated_fixed,
+                "net_profit": net_profit,
+                "net_margin_pct": net_margin_pct,
+            }
+        )
+
+    # Ensure rounding errors don't accumulate
+    allocated_fixed_total = round(allocated_fixed_total, 2)
+
+    totals_row = {
+        "product": "TOTAL",
+        "revenue": total_revenue,
+        "variable_cost": variable_total,
+        "gross_profit": gross_profit_total,
+        "gross_margin_pct": (gross_profit_total / total_revenue * 100) if total_revenue else None,
+        "allocated_fixed": fixed_total,
+        "net_profit": net_profit_total,
+        "net_margin_pct": overall_profit_margin,
+    }
+
+    metrics_summary = {
+        "net_profit": net_profit_total,
+        "overall_profit_margin": overall_profit_margin,
+        "break_even": break_even,
+        "contribution_margin": contribution_margin,
+        "total_revenue": total_revenue,
+        "total_costs": total_costs,
+    }
+
+    return {
+        "metrics": metrics_summary,
+        "products": product_rows,
+        "totals": totals_row,
+        "footnote": "*Net profit includes allocated fixed costs.",
+    }
+
+
+def _render_business_performance(data: dict) -> None:
+    metrics = data.get("metrics", {})
+    products = data.get("products", [])
+    totals = data.get("totals", {})
+
+    st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="section-header">
+            <h2 class="section-title">Overall Business Performance</h2>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    cards = [
+        {"label": "Total Net Profit", "value": _format_currency(metrics.get("net_profit"))},
+        {
+            "label": "Overall Profit Margin",
+            "value": _format_percentage(metrics.get("overall_profit_margin")),
+        },
+        {
+            "label": "Break-even Coverage",
+            "value": _format_ratio(metrics.get("break_even")),
+        },
+        {
+            "label": "Contribution Margin",
+            "value": _format_currency(metrics.get("contribution_margin")),
+        },
+    ]
+
+    cards_html = ["<div class='metric-grid'>"]
+    for card in cards:
+        cards_html.append(
+            "<div class='metric-card'>"
+            "<div class='label'>{label}</div>"
+            "<div class='value'>{value}</div>"
+            "</div>".format(
+                label=html.escape(card["label"]),
+                value=html.escape(card["value"]),
+            )
+        )
+    cards_html.append("</div>")
+    st.markdown("".join(cards_html), unsafe_allow_html=True)
+
+    if not products:
+        render_empty_state("Business performance data is not available yet.")
+        return
+
+    table_rows = []
+    for row in products:
+        table_rows.append(
+            "<tr>"
+            f"<td>{html.escape(_clean_product_name(row['product']))}</td>"
+            f"<td>{html.escape(_format_currency(row['revenue']))}</td>"
+            f"<td>{html.escape(_format_currency(row['variable_cost']))}</td>"
+            f"<td>{html.escape(_format_currency(row['gross_profit']))}</td>"
+            f"<td>{html.escape(_format_percentage(row['gross_margin_pct']))}</td>"
+            f"<td>{html.escape(_format_currency(row['net_profit']))}</td>"
+            f"<td>{html.escape(_format_percentage(row['net_margin_pct']))}</td>"
+            "</tr>"
+        )
+
+    totals_row_html = (
+        "<tr style='background-color:#DBEAFE; font-weight:600;'>"
+        f"<td>{html.escape(totals.get('product', 'TOTAL'))}</td>"
+        f"<td>{html.escape(_format_currency(totals.get('revenue')))}</td>"
+        f"<td>{html.escape(_format_currency(totals.get('variable_cost')))}</td>"
+        f"<td>{html.escape(_format_currency(totals.get('gross_profit')))}</td>"
+        f"<td>{html.escape(_format_percentage(totals.get('gross_margin_pct')))}</td>"
+        f"<td>{html.escape(_format_currency(totals.get('net_profit')))}</td>"
+        f"<td>{html.escape(_format_percentage(totals.get('net_margin_pct')))}</td>"
+        "</tr>"
+    )
+
+    table_html = (
+        "<div style='overflow-x:auto; margin-top:1rem;'>"
+        "<table style='width:100%; border-collapse:collapse;'>"
+        "<thead>"
+        "<tr>"
+        "<th style='text-align:left; padding:0.5rem;'>Product</th>"
+        "<th style='text-align:right; padding:0.5rem;'>Revenue</th>"
+        "<th style='text-align:right; padding:0.5rem;'>Variable Cost</th>"
+        "<th style='text-align:right; padding:0.5rem;'>Gross Profit</th>"
+        "<th style='text-align:right; padding:0.5rem;'>Gross Margin %</th>"
+        "<th style='text-align:right; padding:0.5rem;'>Net Profit*</th>"
+        "<th style='text-align:right; padding:0.5rem;'>Net Margin %</th>"
+        "</tr>"
+        "</thead>"
+        "<tbody>"
+        f"{''.join(table_rows)}"
+        f"{totals_row_html}"
+        "</tbody>"
+        "</table>"
+        "</div>"
+        f"<p style='font-size:0.8rem; color:{COLORS['text_muted']}; margin-top:0.5rem;'>{html.escape(data.get('footnote', ''))}</p>"
+    )
+
+    st.markdown(table_html, unsafe_allow_html=True)
 
 
 if __name__ == "__main__":  # pragma: no cover - standalone Streamlit page
