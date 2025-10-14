@@ -6,7 +6,7 @@ import html
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 
 import pandas as pd
 import plotly.express as px
@@ -210,6 +210,7 @@ def render() -> None:
     _render_cost_metrics(connection)
     product_metrics = _render_product_highlights(connection)
     _render_distribution_section(connection, product_metrics)
+    _render_toc_core_metrics(connection)
 
     st.markdown("<hr class='section-divider'>", unsafe_allow_html=True)
     st.caption("Additional executive insights, charts, and filters will arrive in the next phase.")
@@ -655,6 +656,26 @@ def _calculate_business_performance(connection: "Neo4jConnection", product_metri
     }
 
 
+def _calculate_toc_metrics(connection: "Neo4jConnection") -> Dict[str, Any]:
+    """Collect core TOC metrics and derived ratios."""
+
+    throughput = float(connection.get_throughput() or 0.0)
+    inventory = float(connection.get_inventory_investment() or 0.0)
+    operating_expense = float(connection.get_operating_expense() or 0.0)
+    roi_ratio = float(connection.get_toc_roi() or 0.0)
+    productivity = float(connection.get_toc_productivity() or 0.0)
+    investment_turn = float(connection.get_investment_turn() or 0.0)
+
+    return {
+        "throughput": throughput,
+        "inventory": inventory,
+        "operating_expense": operating_expense,
+        "roi_ratio": roi_ratio,
+        "productivity": productivity,
+        "investment_turn": investment_turn,
+    }
+
+
 def _render_business_performance(data: dict) -> None:
     metrics = data.get("metrics", {})
     products = data.get("products", [])
@@ -754,6 +775,86 @@ def _render_business_performance(data: dict) -> None:
     )
 
     st.markdown(table_html, unsafe_allow_html=True)
+
+
+def _render_toc_core_metrics(connection: "Neo4jConnection") -> None:
+    metrics = _calculate_toc_metrics(connection)
+    roi_ratio = metrics["roi_ratio"]
+    roi_pct = roi_ratio * 100
+    productivity = metrics["productivity"]
+    investment_turn = metrics["investment_turn"]
+
+    st.markdown(
+        """
+        <div class="section-header">
+            <h2 class="section-title">Theory of Constraints (TOC) Metrics</h2>
+        </div>
+        <hr class='section-divider'>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    cards = [
+        {
+            "label": "Throughput (T)",
+            "value": _format_currency(metrics["throughput"]),
+            "footnote": "Money generated after variable costs",
+            "color": "#0891B2",
+        },
+        {
+            "label": "Operating Expense (OE)",
+            "value": _format_currency(metrics["operating_expense"]),
+            "footnote": "Keeping the lights on",
+            "color": "#1E40AF",
+        },
+        {
+            "label": "Inventory (I)",
+            "value": _format_currency(metrics["inventory"]),
+            "footnote": "*Estimated: 1.5 months of variable costs",
+            "color": "#0369A1",
+        },
+        {
+            "label": "ROI (TOC)",
+            "value": _format_percentage(roi_pct),
+            "footnote": "Target: >100% (150% stretch)",
+            "highlight": roi_ratio >= 1.0,
+        },
+        {
+            "label": "Productivity (T/OE)",
+            "value": _format_ratio(productivity),
+            "footnote": "Target: >2.5 (3.0 stretch)",
+            "highlight": productivity >= 2.5,
+        },
+        {
+            "label": "Investment Turn (T/I)",
+            "value": _format_ratio(investment_turn),
+            "footnote": "Target: \u22653.5 medium term",
+            "highlight": investment_turn >= 3.5,
+        },
+    ]
+
+    cards_html: List[str] = ["<div class='metric-grid'>"]
+    for card in cards:
+        highlight = card.get("highlight")
+        if highlight is None:
+            value_color = card.get("color", COLORS["text_primary"])
+        else:
+            value_color = "#14B8A6" if highlight else "#F59E0B"
+
+        footnote_text = card.get("footnote", "")
+        cards_html.append("<div class='metric-card'>")
+        cards_html.append(f"<div class='label'>{html.escape(card['label'])}</div>")
+        cards_html.append(
+            f"<div class='value' style='color:{value_color};'>{html.escape(card['value'])}</div>"
+        )
+        if footnote_text:
+            cards_html.append(
+                f"<small style=\"color:{COLORS['text_muted']};\">{html.escape(footnote_text)}</small>"
+            )
+        cards_html.append("</div>")
+    cards_html.append("</div>")
+
+    st.markdown("".join(cards_html), unsafe_allow_html=True)
 
 
 if __name__ == "__main__":  # pragma: no cover - standalone Streamlit page

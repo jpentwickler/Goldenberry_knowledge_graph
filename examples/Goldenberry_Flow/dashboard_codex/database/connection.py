@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from neo4j import GraphDatabase
 
@@ -20,6 +20,8 @@ logger.setLevel(logging.INFO)
 
 class Neo4jConnection:
     """Lightweight wrapper around the Neo4j Python driver."""
+
+    TOC_WORKING_CAPITAL_BUFFER: float = 1.5
 
     def __init__(self) -> None:
         self._driver = None
@@ -363,14 +365,145 @@ class Neo4jConnection:
         records: List[Dict[str, Any]] = []
         for row in result:
             records.append(
-                {
-                    "category": row.get("category"),
-                    "total_cost": float(row.get("totalCost") or 0.0),
-                    "behavior": (row.get("behavior") or "").lower(),
-                }
+            {
+                "category": row.get("category"),
+                "total_cost": float(row.get("totalCost") or 0.0),
+                "behavior": (row.get("behavior") or "").lower(),
+            }
             )
 
         return records
+    def get_throughput(self) -> float:
+        """Return TOC Throughput (Revenue minus totally variable costs)."""
+
+        revenue = self.get_total_revenue()
+        variable_costs = self.get_variable_costs()
+        return revenue - variable_costs
+
+    def _average_monthly_variable_cost(self) -> float:
+        """Return average monthly variable cost for working capital proxy."""
+
+        timeseries = self.get_variable_cost_timeseries()
+        if not timeseries:
+            total_variable = self.get_variable_costs()
+            return total_variable / 12 if total_variable else 0.0
+
+        month_totals: Dict[Tuple[int, int], float] = {}
+        for row in timeseries:
+            year = int(row.get("year") or 0)
+            month = int(row.get("month") or 0)
+            key = (year, month)
+            month_totals[key] = month_totals.get(key, 0.0) + float(row.get("cost") or 0.0)
+
+        if not month_totals:
+            total_variable = self.get_variable_costs()
+            return total_variable / 12 if total_variable else 0.0
+
+        return sum(month_totals.values()) / len(month_totals)
+
+    def get_inventory_investment(self) -> float:
+        """Return the working capital proxy for TOC calculations."""
+
+        average_monthly_variable = self._average_monthly_variable_cost()
+        return average_monthly_variable * self.TOC_WORKING_CAPITAL_BUFFER
+
+    def get_operating_expense(self) -> float:
+        """Return TOC Operating Expense (alias of fixed costs)."""
+
+        return self.get_fixed_costs()
+
+    def get_toc_roi(self) -> float:
+        """Return TOC ROI: (Throughput - OE) / Inventory."""
+
+        inventory = self.get_inventory_investment()
+        if inventory == 0:
+            return 0.0
+        throughput = self.get_throughput()
+        operating_expense = self.get_operating_expense()
+        return (throughput - operating_expense) / inventory
+
+    def get_toc_productivity(self) -> float:
+        """Return TOC Productivity: Throughput / Operating Expense."""
+
+        operating_expense = self.get_operating_expense()
+        if operating_expense == 0:
+            return 0.0
+        throughput = self.get_throughput()
+        return throughput / operating_expense
+
+    def get_investment_turn(self) -> float:
+        """Return Investment Turn: Throughput / Inventory."""
+
+        inventory = self.get_inventory_investment()
+        if inventory == 0:
+            return 0.0
+        throughput = self.get_throughput()
+        return throughput / inventory
+
+    def get_inventory_turnover(self) -> float:
+        """Return Inventory Turnover: TVC / Inventory."""
+
+        inventory = self.get_inventory_investment()
+        if inventory == 0:
+            return 0.0
+        variable_costs = self.get_variable_costs()
+        return variable_costs / inventory
+
+    def get_daily_throughput_rate(self, days: int = 365) -> float:
+        """Return average daily throughput."""
+
+        throughput = self.get_throughput()
+        if days <= 0:
+            return throughput
+        return throughput / days
+
+    def get_product_throughput(self, product_name: str) -> float:
+        """Return throughput for a specific product."""
+
+        revenue = 0.0
+        for product in self.get_product_metrics():
+            if product.get("Product") == product_name:
+                revenue = float(product.get("TotalRevenue") or 0.0)
+                break
+        variable_cost = self.get_product_variable_cost(product_name)
+        return revenue - variable_cost
+
+    def get_product_toc_metrics(self, product_name: str) -> Dict[str, Any]:
+        """Return comprehensive TOC metrics for a product."""
+
+        overall_throughput = self.get_throughput()
+        total_revenue = self.get_total_revenue()
+        operating_expense = self.get_operating_expense()
+
+        product_throughput = self.get_product_throughput(product_name)
+        revenue = 0.0
+        for product in self.get_product_metrics():
+            if product.get("Product") == product_name:
+                revenue = float(product.get("TotalRevenue") or 0.0)
+                break
+
+        variable_cost = self.get_product_variable_cost(product_name)
+        throughput_share = (product_throughput / overall_throughput) if overall_throughput else 0.0
+        allocated_oe = operating_expense * (revenue / total_revenue) if total_revenue else 0.0
+        t_oe_ratio = (product_throughput / allocated_oe) if allocated_oe else 0.0
+
+        if throughput_share >= 0.30 and t_oe_ratio >= 2.5:
+            priority = "Champion"
+        elif throughput_share >= 0.15 or t_oe_ratio >= 2.0:
+            priority = "Contributor"
+        else:
+            priority = "Diversifier"
+
+        return {
+            "product": product_name,
+            "revenue": revenue,
+            "variable_cost": variable_cost,
+            "throughput": product_throughput,
+            "throughput_share": throughput_share,
+            "allocated_oe": allocated_oe,
+            "t_oe_ratio": t_oe_ratio,
+            "priority": priority,
+        }
 
 
     def get_product_metrics(self) -> List[Dict[str, Any]]:
